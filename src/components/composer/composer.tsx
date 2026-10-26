@@ -10,7 +10,7 @@ import { CardTitle, GlassCard, Notice } from "@/components/ui/misc";
 import { Switch, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/overlay";
 import { PlatformBadge, PlatformIcon, StatusBadge } from "@/components/ui/platform";
 import { api, ApiError, errorMessage } from "@/lib/api-client";
-import { composeFinalText, PLATFORM_META, PLATFORMS, platformLimits, textLength, validateMedia, type Platform, type ValidationIssue } from "@/lib/platforms";
+import { finalPostText, PLATFORM_META, PLATFORMS, platformLimits, textLength, validateMedia, type Platform, type ValidationIssue } from "@/lib/platforms";
 import { checkQuality } from "@/lib/quality";
 import { COMMON_TIMEZONES } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -214,7 +214,7 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
   const issuesFor = (p: Platform) => {
     const v = getVariant(p);
     const m = v.includeMedia ? media : [];
-    const text = composeFinalText(v.body, v.hashtags) + (linkUrl && p !== "instagram" && !v.body.includes(linkUrl) ? `\n\n${linkUrl}` : "");
+    const text = finalPostText(p, v.body, v.hashtags, linkUrl || null);
     return [...checkQuality({ text, platform: p, sourceText: body, mediaCount: m.length, xMaxLength }).issues, ...validateMedia(p, m)];
   };
   const blocking = platforms.flatMap((p) => issuesFor(p).filter((i) => i.level === "error").map((i) => ({ p, ...i })));
@@ -359,7 +359,7 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
               {platforms.map((p) => {
                 const v = getVariant(p);
                 const locked = lockedPlatforms.has(p);
-                const final = composeFinalText(v.body, v.hashtags);
+                const final = finalPostText(p, v.body, v.hashtags, linkUrl || null);
                 const len = textLength(p, final);
                 const max = platformLimits(p, { xMaxLength }).maxChars;
                 const issues = issuesFor(p);
@@ -414,7 +414,7 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
                     )}
                     <div>
                       <p className="mb-2 text-xs uppercase tracking-wider text-stone">Preview</p>
-                      <PlatformPreview platform={p} text={final + (linkUrl && p !== "instagram" && !final.includes(linkUrl) ? `\n\n${linkUrl}` : "")} media={v.includeMedia ? media : []} name={account?.displayName ?? "You"} handle={account?.username} />
+                      <PlatformPreview platform={p} text={final} media={v.includeMedia ? media : []} name={account?.displayName ?? "You"} handle={account?.username} />
                     </div>
                   </TabsContent>
                 );

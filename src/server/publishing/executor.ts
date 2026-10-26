@@ -1,6 +1,6 @@
 import "server-only";
 import { and, asc, eq, inArray, lt, sql } from "drizzle-orm";
-import { composeFinalText, PLATFORM_META } from "@/lib/platforms";
+import { finalPostText, PLATFORM_META } from "@/lib/platforms";
 import { refreshContentStatus } from "@/server/content/service";
 import { db } from "@/server/db";
 import { contentItems, contentMedia, contentVariants, mediaAssets, publishedPosts, publishingAttempts, publishingJobs, socialAccounts } from "@/server/db/schema";
@@ -79,8 +79,7 @@ export async function executePublishingJob(jobId: string, opts: ExecuteOptions):
       : [];
     if (mediaRows.some((m) => m.deletedAt)) throw new PlatformError("validation", "An attached media file was deleted.");
 
-    let text = composeFinalText(variant.body, variant.hashtags);
-    if (content.linkUrl && job.platform !== "instagram" && !text.includes(content.linkUrl)) text = `${text}\n\n${content.linkUrl}`;
+    const text = finalPostText(job.platform, variant.body, variant.hashtags, content.linkUrl);
 
     // Freeze exactly what we're about to send (audit / history).
     await db.update(publishingJobs).set({ payloadSnapshot: { text, mediaIds: mediaRows.map((m) => m.id), linkUrl: content.linkUrl } }).where(eq(publishingJobs.id, jobId));

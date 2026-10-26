@@ -44,7 +44,8 @@ export function platformLimits(platform: Platform, opts: { xMaxLength?: number }
         requiresMedia: false,
         maxImages: 1,
         maxVideos: 1,
-        imageMimeTypes: ["image/jpeg", "image/png", "image/gif"],
+        // WebP is converted to JPEG automatically before upload.
+        imageMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
         videoMimeTypes: ["video/mp4"],
         weightedCount: false,
       };
@@ -118,6 +119,17 @@ export function composeFinalText(body: string, hashtags: string[] = []): string 
     .filter((h) => !new RegExp(`(^|\\s)#${escapeRegExp(h)}(\\b|$)`, "iu").test(body))
     .map((h) => `#${h}`);
   return tags.length ? `${body.trimEnd()}\n\n${tags.join(" ")}` : body;
+}
+
+/**
+ * Exactly the text that will be sent to a platform: body + hashtags + link.
+ * Links are appended for LinkedIn and X (Instagram captions can't hold clickable links).
+ * Used by the composer, pre-publish validation and the executor so they never disagree.
+ */
+export function finalPostText(platform: Platform, body: string, hashtags: string[] = [], linkUrl?: string | null): string {
+  const text = composeFinalText(body, hashtags);
+  if (linkUrl && platform !== "instagram" && !text.includes(linkUrl)) return `${text}\n\n${linkUrl}`;
+  return text;
 }
 
 function escapeRegExp(s: string) {
