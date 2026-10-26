@@ -1,0 +1,71 @@
+import { and, eq, ne } from "drizzle-orm";
+import { Composer, type ComposerInitial } from "@/components/composer/composer";
+import { PageHeader } from "@/components/ui/misc";
+import type { Platform } from "@/lib/platforms";
+import { suggestedScheduleLocal } from "@/lib/time";
+import { requirePageContext } from "@/server/auth/session";
+import { listBrands } from "@/server/brand/service";
+import { getContent } from "@/server/content/service";
+import { db } from "@/server/db";
+import { socialAccounts } from "@/server/db/schema";
+import { env, integrationStatus } from "@/server/env";
+
+export const metadata = { title: "Create post" };
+
+export default async function ComposePage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+  const ctx = await requirePageContext();
+  const { id } = await searchParams;
+  const [accounts, brands, existing] = await Promise.all([
+    db
+      .select({ id: socialAccounts.id, platform: socialAccounts.platform, displayName: socialAccounts.displayName, username: socialAccounts.username, avatarUrl: socialAccounts.avatarUrl, status: socialAccounts.status, lastError: socialAccounts.lastError })
+      .from(socialAccounts)
+      .where(and(eq(socialAccounts.workspaceId, ctx.workspace.id), ne(socialAccounts.status, "disconnected"))),
+    listBrands(ctx.workspace.id),
+    id && /^[0-9a-f-]{36}$/i.test(id) ? getContent(ctx.workspace.id, id).catch(() => null) : null,
+  ]);
+
+  const initial: ComposerInitial = existing
+    ? {
+        id: existing.id,
+        title: existing.title,
+        body: existing.body,
+        linkUrl: existing.linkUrl,
+        hashtags: existing.hashtags,
+        callToAction: existing.callToAction,
+        campaign: existing.campaign,
+        tags: existing.tags,
+        brandProfileId: existing.brandProfileId,
+        media: existing.media.map((m) => ({ ...m, createdAt: undefined })) as ComposerInitial["media"],
+        variants: Object.fromEntries(existing.variants.map((v) => [v.platform, { body: v.body, hashtags: v.hashtags, includeMedia: v.includeMedia, aiGenerated: v.aiGenerated }])) as ComposerInitial["variants"],
+        jobs: existing.jobs.map((j) => ({
+          id: j.id,
+          platform: j.platform as Platform,
+          status: j.status,
+          scheduledAt: j.scheduledAt.toISOString(),
+          timezone: j.timezone,
+          publishedUrl: j.publishedUrl,
+          lastErrorMessage: j.lastErrorMessage,
+          lastErrorCode: j.lastErrorCode,
+          account: { id: j.account.id, displayName: j.account.displayName },
+        })),
+        status: existing.status,
+      }
+    : { id: null, title: "", body: "", linkUrl: null, hashtags: [], callToAction: null, campaign: null, tags: [], brandProfileId: null, media: [], variants: {}, jobs: [], status: "draft" };
+
+  const integrations = integrationStatus();
+  return (
+    <>
+      <PageHeader eyebrow="Composer" title={existing ? "Edit post" : "Create a post"} description="Write once, shape it per platform, preview, then publish or schedule." />
+      <Composer
+        key={existing?.id ?? "new"}
+        initial={initial}
+        accounts={accounts}
+        brands={brands.map((b) => ({ id: b.id, name: b.name, isDefault: b.isDefault }))}
+        timezone={ctx.workspace.timezone}
+        defaultScheduleLocal={suggestedScheduleLocal(ctx.workspace.timezone)}
+        xMaxLength={env().X_MAX_POST_LENGTH}
+        aiAvailable={integrations.groq || integrations.gemini}
+      />
+    </>
+  );
+}
