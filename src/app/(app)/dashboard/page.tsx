@@ -6,7 +6,9 @@ import { PlatformBadge, StatusBadge } from "@/components/ui/platform";
 import { formatInZone } from "@/lib/time";
 import { formatBytes, timeAgo } from "@/lib/utils";
 import { requirePageContext } from "@/server/auth/session";
-import { dashboardData } from "@/server/dashboard/service";
+import { channelSummaries, dashboardData } from "@/server/dashboard/service";
+import { PLATFORM_META } from "@/lib/platforms";
+import { PlatformIcon } from "@/components/ui/platform";
 import { integrationStatus } from "@/server/env";
 
 export const metadata = { title: "Dashboard" };
@@ -29,7 +31,9 @@ const ACTION_LABEL: Record<string, string> = {
 
 export default async function DashboardPage() {
   const ctx = await requirePageContext();
-  const d = await dashboardData(ctx.workspace.id);
+  const [d, channels] = await Promise.all([dashboardData(ctx.workspace.id), channelSummaries(ctx.workspace.id)]);
+  const totalOpen = channels.reduce((s, ch) => s + ch.openComments, 0);
+  const totalFollowers = channels.reduce((s, ch) => s + (ch.followers ?? 0), 0);
   const ai = d.usage.items.find((i) => i.key === "ai")!;
   const integrations = integrationStatus();
   const hour = Number(formatInZone(new Date(), ctx.workspace.timezone, "H"));
@@ -145,6 +149,42 @@ export default async function DashboardPage() {
           </GlassCard>
         </div>
       </div>
+
+      <GlassCard className="mt-4">
+        <CardTitle
+          description={channels.length ? `${Intl.NumberFormat("en", { notation: "compact" }).format(totalFollowers)} followers across ${channels.length} platform${channels.length === 1 ? "" : "s"} · ${totalOpen} comment${totalOpen === 1 ? "" : "s"} waiting` : "Connect platforms to see them here."}
+          action={totalOpen > 0 ? <Link href="/inbox" className="text-sm text-moss hover:underline">Open inbox →</Link> : undefined}
+        >
+          Your channels
+        </CardTitle>
+        {channels.length === 0 ? (
+          <EmptyState title="No channels yet" description="Connect Instagram, LinkedIn, X, YouTube and more." action={<Button asChild size="sm"><Link href="/accounts">Connect accounts</Link></Button>} />
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {channels.map((ch) => (
+              <li key={ch.platform}>
+                <Link href={`/channels/${ch.platform}`} className="group flex h-full flex-col rounded-2xl border border-white/8 bg-black/20 p-4 transition hover:-translate-y-0.5 hover:border-white/20">
+                  <span className="flex items-center gap-2.5">
+                    <span className="grid size-9 place-items-center rounded-xl text-white" style={{ backgroundColor: `${PLATFORM_META[ch.platform].color}33` }}>
+                      <PlatformIcon platform={ch.platform} />
+                    </span>
+                    <span className="font-medium text-white">{PLATFORM_META[ch.platform].label}</span>
+                    {ch.openComments > 0 && <span className="ml-auto rounded-full bg-dawn/90 px-2 text-[11px] font-semibold text-ink">{ch.openComments}</span>}
+                  </span>
+                  <span className="mt-3 grid grid-cols-2 gap-2 text-xs text-stone">
+                    <span>
+                      <span className="block font-display text-2xl text-white">{ch.followers === null ? "—" : Intl.NumberFormat("en", { notation: "compact" }).format(ch.followers)}</span>followers
+                    </span>
+                    <span>
+                      <span className="block font-display text-2xl text-white">{ch.posts30d}</span>posts · 30d
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </GlassCard>
 
       <GlassCard className="mt-4">
         <CardTitle>Recent activity</CardTitle>

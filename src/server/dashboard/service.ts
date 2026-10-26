@@ -1,7 +1,7 @@
 import "server-only";
-import { and, asc, desc, eq, gte, inArray, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, ne } from "drizzle-orm";
 import { db } from "@/server/db";
-import { auditLogs, contentItems, publishingJobs, socialAccounts, users } from "@/server/db/schema";
+import { auditLogs, contentItems, engagementItems, publishedPosts, publishingJobs, socialAccounts, users } from "@/server/db/schema";
 import { statusCounts } from "@/server/publishing/service";
 import { usageSummary } from "@/server/usage/service";
 
@@ -45,4 +45,39 @@ export async function dashboardData(workspaceId: string) {
     recent,
     usage,
   };
+}
+
+/** Overall per-channel summary for the main dashboard (followers, posts, comments waiting). */
+export async function channelSummaries(workspaceId: string) {
+  const since = new Date(Date.now() - 30 * 86400_000);
+  const [accounts, posts, open] = await Promise.all([
+    db
+      .select({ platform: socialAccounts.platform, metadata: socialAccounts.metadata })
+      .from(socialAccounts)
+      .where(and(eq(socialAccounts.workspaceId, workspaceId), ne(socialAccounts.status, "disconnected"))),
+    db
+      .select({ platform: publishedPosts.platform, n: count() })
+      .from(publishedPosts)
+      .where(and(eq(publishedPosts.workspaceId, workspaceId), gte(publishedPosts.publishedAt, since)))
+      .groupBy(publishedPosts.platform),
+    db
+      .select({ platform: engagementItems.platform, n: count() })
+      .from(engagementItems)
+      .where(and(eq(engagementItems.workspaceId, workspaceId), inArray(engagementItems.status, ["new", "needs_review"])))
+      .groupBy(engagementItems.platform),
+  ]);
+  const platforms = [...new Set(accounts.map((a) => a.platform))];
+  return platforms.map((platform) => {
+    const accs = accounts.filter((a) => a.platform === platform);
+    const followers = accs
+      .map((a) => (a.metadata as { stats?: { followers?: number | null } }).stats?.followers)
+      .filter((v): v is number => typeof v === "number");
+    return {
+      platform,
+      accounts: accs.length,
+      followers: followers.length ? followers.reduce((s, v) => s + v, 0) : null,
+      posts30d: posts.find((p) => p.platform === platform)?.n ?? 0,
+      openComments: open.find((o) => o.platform === platform)?.n ?? 0,
+    };
+  });
 }
