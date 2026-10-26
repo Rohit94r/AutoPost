@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/*
+ * Verdant design tokens — "glass over nature".
+ * Dark frosted surfaces sit on full-bleed landscape photography. Text contrast is kept ≥ 4.5:1
+ * by always pairing photos with a dark scrim and using translucent-dark (not translucent-white) panels.
+ */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-serif), ui-serif, Georgia, serif;
+
+  --color-ink: #07110d;
+  --color-ink-2: #0c1a14;
+  --color-moss: #86efac;
+  --color-moss-strong: #4ade80;
+  --color-sun: #fcd59a;
+  --color-dawn: #f9a8a0;
+  --color-mist: #e8f3ee;
+  --color-fog: #b9cbc3;
+  --color-stone: #8aa198;
+
+  --radius-glass: 1.25rem;
+  --shadow-glass: 0 1px 0 0 rgb(255 255 255 / 0.08) inset, 0 20px 50px -20px rgb(0 0 0 / 0.6);
+
+  --animate-rise: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.2s linear infinite;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-ink text-mist font-sans;
+  }
+  ::selection {
+    background: rgb(134 239 172 / 0.35);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-moss);
+    outline-offset: 2px;
+  }
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.7);
+  }
+}
+
+@layer components {
+  /* Frosted glass panel. */
+  .glass {
+    background: linear-gradient(160deg, rgb(255 255 255 / 0.10), rgb(255 255 255 / 0.04));
+    border: 1px solid rgb(255 255 255 / 0.13);
+    box-shadow: var(--shadow-glass);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    border-radius: var(--radius-glass);
+  }
+  .glass-strong {
+    background: linear-gradient(160deg, rgb(10 24 18 / 0.78), rgb(8 18 14 / 0.62));
+    border: 1px solid rgb(255 255 255 / 0.12);
+    box-shadow: var(--shadow-glass);
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+    border-radius: var(--radius-glass);
+  }
+  .glass-input {
+    background: rgb(0 0 0 / 0.28);
+    border: 1px solid rgb(255 255 255 / 0.14);
+    border-radius: 0.8rem;
+  }
+  .glass-input:focus-within,
+  .glass-input:focus {
+    border-color: rgb(134 239 172 / 0.6);
+    box-shadow: 0 0 0 3px rgb(134 239 172 / 0.15);
+  }
+  .text-gradient {
+    background: linear-gradient(100deg, #ffffff 0%, var(--color-sun) 45%, var(--color-moss) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .skeleton {
+    background: linear-gradient(90deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.12), rgb(255 255 255 / 0.05));
+    background-size: 200% 100%;
+    @apply animate-shimmer rounded-lg;
+  }
+  .scrim-bottom {
+    background: linear-gradient(180deg, rgb(7 17 13 / 0.15) 0%, rgb(7 17 13 / 0.55) 55%, var(--color-ink) 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
