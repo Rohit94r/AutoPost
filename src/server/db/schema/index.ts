@@ -13,6 +13,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { PLATFORMS } from "../../../lib/platforms";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
 const createdAt = () => ts("created_at").notNull().defaultNow();
@@ -24,7 +25,7 @@ const updatedAt = () =>
 
 /* ───────────────────────────── Enums ───────────────────────────── */
 
-export const platformEnum = pgEnum("platform", ["linkedin", "instagram", "x"]);
+export const platformEnum = pgEnum("platform", PLATFORMS);
 export const memberRoleEnum = pgEnum("member_role", ["owner", "admin", "editor", "viewer"]);
 export const socialAccountStatusEnum = pgEnum("social_account_status", [
   "connected",
@@ -552,12 +553,16 @@ export const publishingAttempts = pgTable(
   (t) => [uniqueIndex("publishing_attempts_unique").on(t.jobId, t.attemptNumber)],
 );
 
+/**
+ * Every post we know about on a connected account: published through Verdant (`source=verdant`,
+ * linked to a job) or imported from the platform (`source=imported`) so comments and metrics can
+ * be shown for the whole account, not just posts created here.
+ */
 export const publishedPosts = pgTable(
   "published_posts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     jobId: uuid("job_id")
-      .notNull()
       .unique()
       .references(() => publishingJobs.id, { onDelete: "cascade" }),
     workspaceId: uuid("workspace_id")
@@ -570,11 +575,96 @@ export const publishedPosts = pgTable(
     platform: platformEnum("platform").notNull(),
     externalPostId: text("external_post_id").notNull(),
     url: text("url"),
+    source: text("source").notNull().default("verdant"),
+    text: text("text"),
+    thumbnailUrl: text("thumbnail_url"),
     publishedAt: ts("published_at").notNull(),
     lastMetricsAt: ts("last_metrics_at"),
+    lastCommentsAt: ts("last_comments_at"),
     createdAt: createdAt(),
   },
-  (t) => [index("published_posts_workspace_idx").on(t.workspaceId, t.publishedAt)],
+  (t) => [
+    index("published_posts_workspace_idx").on(t.workspaceId, t.publishedAt),
+    uniqueIndex("published_posts_account_external_unique").on(t.socialAccountId, t.externalPostId),
+  ],
+);
+
+/* ───────────────────────── Engagement (inbox) ───────────────────────── */
+
+export interface ReplyTarget {
+  /** Platform-specific identifiers needed to reply (e.g. Bluesky uri+cid of root/parent). */
+  [key: string]: string | undefined;
+}
+
+/** Comments, replies and mentions received on connected accounts. */
+export const engagementItems = pgTable(
+  "engagement_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    socialAccountId: uuid("social_account_id")
+      .notNull()
+      .references(() => socialAccounts.id, { onDelete: "cascade" }),
+    publishedPostId: uuid("published_post_id").references(() => publishedPosts.id, { onDelete: "set null" }),
+    platform: platformEnum("platform").notNull(),
+    kind: text("kind").notNull().default("comment"),
+    externalId: text("external_id").notNull(),
+    postExternalId: text("post_external_id"),
+    parentExternalId: text("parent_external_id"),
+    authorName: text("author_name"),
+    authorHandle: text("author_handle"),
+    authorExternalId: text("author_external_id"),
+    authorAvatarUrl: text("author_avatar_url"),
+    text: text("text").notNull().default(""),
+    permalink: text("permalink"),
+    replyTarget: jsonb("reply_target").$type<ReplyTarget>().notNull().default({}),
+    isOwn: boolean("is_own").notNull().default(false),
+    status: text("status").notNull().default("new"),
+    sentiment: text("sentiment"),
+    draftReply: text("draft_reply"),
+    replyText: text("reply_text"),
+    replyExternalId: text("reply_external_id"),
+    repliedAt: ts("replied_at"),
+    repliedBy: text("replied_by"),
+    autopilotRuleId: uuid("autopilot_rule_id"),
+    autopilotNote: text("autopilot_note"),
+    occurredAt: ts("occurred_at").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("engagement_items_unique").on(t.socialAccountId, t.externalId),
+    index("engagement_items_inbox_idx").on(t.workspaceId, t.status, t.occurredAt),
+    index("engagement_items_post_idx").on(t.publishedPostId, t.occurredAt),
+  ],
+);
+
+/** Autopilot rules: when to answer comments/mentions automatically (or draft for approval). */
+export const autoReplyRules = pgTable(
+  "auto_reply_rules",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    /** Empty = all connected accounts that support replies. */
+    socialAccountIds: uuid("social_account_ids").array().notNull().default(sql`'{}'::uuid[]`),
+    trigger: text("trigger").notNull().default("all"),
+    keywords: text("keywords").array().notNull().default(sql`'{}'::text[]`),
+    instructions: text("instructions"),
+    mode: text("mode").notNull().default("draft"),
+    dailyLimit: integer("daily_limit").notNull().default(50),
+    skipNegative: boolean("skip_negative").notNull().default(true),
+    brandProfileId: uuid("brand_profile_id").references(() => brandProfiles.id, { onDelete: "set null" }),
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("auto_reply_rules_workspace_idx").on(t.workspaceId)],
 );
 
 export const postAnalytics = pgTable(
@@ -752,4 +842,9 @@ export const publishedPostRelations = relations(publishedPosts, ({ one, many }) 
 
 export const postAnalyticsRelations = relations(postAnalytics, ({ one }) => ({
   post: one(publishedPosts, { fields: [postAnalytics.publishedPostId], references: [publishedPosts.id] }),
+}));
+
+export const engagementItemRelations = relations(engagementItems, ({ one }) => ({
+  account: one(socialAccounts, { fields: [engagementItems.socialAccountId], references: [socialAccounts.id] }),
+  post: one(publishedPosts, { fields: [engagementItems.publishedPostId], references: [publishedPosts.id] }),
 }));
