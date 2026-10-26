@@ -48,7 +48,7 @@ export default async function DashboardPage() {
         actions={
           <>
             <Button asChild variant="glass">
-              <Link href="/documents">
+              <Link href="/compose?start=document">
                 <FileScan /> From a document
               </Link>
             </Button>

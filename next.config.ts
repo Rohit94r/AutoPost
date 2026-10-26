@@ -31,6 +31,16 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ["sharp", "pino", "bullmq", "ioredis", "unpdf", "postgres"],
   images: { remotePatterns: [{ protocol: "https", hostname: "**" }] },
+  // Pages merged in the v2 navigation: AI studio + Documents → Create post, Library → History, Autopilot → Inbox.
+  async redirects() {
+    return [
+      { source: "/studio", destination: "/compose", permanent: true },
+      { source: "/documents", destination: "/compose?start=document", permanent: true },
+      { source: "/documents/:id", destination: "/compose?document=:id", permanent: true },
+      { source: "/library", destination: "/history?tab=posts", permanent: true },
+      { source: "/autopilot", destination: "/inbox?tab=autopilot", permanent: true },
+    ];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
