@@ -6,8 +6,8 @@ import { expect, test } from "@playwright/test";
  */
 test("landing page renders the hero and CTA", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Create once.");
-  await expect(page.getByRole("link", { name: /get started/i })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Say it once.");
+  await expect(page.getByRole("link", { name: /get started/i }).first()).toBeVisible();
 });
 
 test("protected pages redirect to sign-in", async ({ page }) => {
@@ -28,7 +28,9 @@ test("health endpoint reports database status", async ({ request }) => {
   expect(body.checks.database).toBe("ok");
 });
 
-test("sign up → onboarding → save a draft → find it in the library", async ({ page }) => {
+// Onboarding saves workspace, brand voice and profile in sequence; a cold dev server compiles pages on first visit.
+test("sign up → onboarding → save a draft → find it in history", async ({ page }) => {
+  test.setTimeout(120_000);
   const email = `e2e-${Date.now()}@example.test`;
   await page.goto("/sign-up");
   await page.getByLabel("Your name").fill("E2E Tester");
@@ -36,18 +38,18 @@ test("sign up → onboarding → save a draft → find it in the library", async
   await page.getByLabel("Password").fill("correct-horse-battery");
   await page.getByRole("button", { name: "Create account" }).click();
 
-  await expect(page).toHaveURL(/\/onboarding/);
+  await expect(page).toHaveURL(/\/onboarding/, { timeout: 30_000 });
   await page.getByRole("button", { name: /continue/i }).click();
   await page.getByRole("button", { name: /continue/i }).click();
   await page.getByRole("button", { name: /enter verdant/i }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 });
 
   await page.goto("/compose");
   await page.getByLabel("Internal label").fill("E2E draft");
   await page.getByLabel(/main content/i).fill("Testing the composer end to end.");
   await page.getByRole("button", { name: /save draft/i }).click();
-  await expect(page.getByText("Draft saved")).toBeVisible();
+  await expect(page.getByText("Draft saved")).toBeVisible({ timeout: 30_000 });
 
   await page.goto("/history?q=E2E");
-  await expect(page.getByRole("link", { name: "E2E draft" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "E2E draft" })).toBeVisible({ timeout: 30_000 });
 });
