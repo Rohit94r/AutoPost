@@ -52,3 +52,9 @@ export const COMMON_TIMEZONES = [
 export function suggestedScheduleLocal(tz: string, leadMs = 2 * 3600_000): string {
   return utcToZonedLocal(new Date(Date.now() + leadMs), tz);
 }
+
+/** Whole days from now until `date` (negative when in the past). */
+export function daysUntil(date: Date | string | null | undefined): number | null {
+  if (!date) return null;
+  return Math.ceil((new Date(date).getTime() - Date.now()) / 86400_000);
+}

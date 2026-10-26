@@ -236,10 +236,10 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
             <Button onClick={generate} loading={busy === "generate"} disabled={!aiAvailable || !!busy}>
               <Sparkles /> Generate platform versions
             </Button>
-            {(["improve", "rewrite", "shorten", "expand"] as const).map((op) => (
+            {(["improve", "humanize", "shorten", "expand"] as const).map((op) => (
               <Button key={op} size="sm" variant="glass" onClick={() => runRewrite(op, "master")} loading={busy === `rw-${op}`} disabled={!aiAvailable || !!busy}>
                 {op === "improve" && <Wand2 />}
-                {op[0]!.toUpperCase() + op.slice(1)}
+                {op === "humanize" ? "Humanize" : op[0]!.toUpperCase() + op.slice(1)}
               </Button>
             ))}
           </div>
@@ -390,6 +390,7 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
                       <Select aria-label="Rewrite this version" className="h-8 w-auto text-xs" value="" disabled={!aiAvailable || locked || !!busy} onChange={(e) => e.target.value && runRewrite(e.target.value, p)}>
                         <option value="">Rewrite…</option>
                         <option value="improve">Improve</option>
+                        <option value="humanize">Make it sound human</option>
                         <option value="shorten">Shorten</option>
                         <option value="expand">Expand</option>
                         <option value="tone">Apply tone</option>

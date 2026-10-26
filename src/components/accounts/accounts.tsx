@@ -22,6 +22,8 @@ export interface AccountView {
   status: string;
   grantedScopes: string[];
   tokenExpiresAt: string | null;
+  /** Days until the token expires, computed on the server. */
+  daysLeft: number | null;
   lastError: string | null;
   createdAt: string;
   settings: Record<string, string>;
@@ -209,7 +211,7 @@ function PlatformCard({
 
       <ul className="mt-4 flex-1 space-y-2">
         {accounts.map((a) => {
-          const days = a.tokenExpiresAt ? Math.ceil((new Date(a.tokenExpiresAt).getTime() - Date.now()) / 86400_000) : null;
+          const days = a.daysLeft;
           return (
             <li key={a.id} className="rounded-xl bg-black/25 p-3">
               <div className="flex items-center gap-2.5">

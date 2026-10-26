@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Accounts, type AccountView, type PlatformView } from "@/components/accounts/accounts";
 import { PageHeader } from "@/components/ui/misc";
 import { PLATFORMS } from "@/lib/platforms";
+import { daysUntil } from "@/lib/time";
 import { requirePageContext } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { socialAccounts } from "@/server/db/schema";
@@ -29,6 +30,7 @@ export default async function AccountsPage() {
       status: r.status,
       grantedScopes: r.grantedScopes,
       tokenExpiresAt: r.tokenExpiresAt?.toISOString() ?? null,
+      daysLeft: daysUntil(r.tokenExpiresAt),
       lastError: r.lastError,
       createdAt: r.createdAt.toISOString(),
       settings: m.settings ?? {},
