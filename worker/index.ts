@@ -3,7 +3,7 @@
  *
  *   publish      executes publishing jobs (delayed BullMQ jobs + sweeper recovery)
  *   documents    document extraction (PDF text / Gemini OCR / vision)
- *   maintenance  sweep (30s), reminders (5m), analytics (30m), tokens (1h), retention (6h)
+ *   maintenance  sweep (30s), reminders + engagement/autopilot (5m), analytics (30m), tokens (1h), retention (6h)
  *
  * Postgres is the source of truth; BullMQ only provides timely delivery.
  */
@@ -11,12 +11,12 @@ process.env.VERDANT_SERVICE ??= "worker";
 
 import { hostname } from "node:os";
 import { Queue, Worker, type Job } from "bullmq";
-import { collectDueMetrics } from "@/server/analytics/service";
+import { collectAccountStats, collectDueMetrics } from "@/server/analytics/service";
 import { closeDb } from "@/server/db";
 import { processDocument } from "@/server/documents/service";
 import { env } from "@/server/env";
 import { logger } from "@/server/logger";
-import { maintainTokens, retention, scheduleReminders, sweep } from "@/server/maintenance";
+import { engagement, maintainTokens, retention, scheduleReminders, sweep } from "@/server/maintenance";
 import { executePublishingJob } from "@/server/publishing/executor";
 import { QUEUES, type DocumentJobData, type PublishJobData } from "@/server/queue";
 import { newRedisConnection } from "@/server/redis";
@@ -50,6 +50,7 @@ async function main() {
     ["sweep", 30_000],
     ["reminders", 5 * 60_000],
     ["analytics", 30 * 60_000],
+    ["engagement", 5 * 60_000],
     ["tokens", 60 * 60_000],
     ["retention", 6 * 60 * 60_000],
   ];
@@ -65,7 +66,9 @@ async function main() {
         case "reminders":
           return scheduleReminders();
         case "analytics":
-          return collectDueMetrics();
+          return { posts: await collectDueMetrics(), accounts: await collectAccountStats() };
+        case "engagement":
+          return engagement();
         case "tokens":
           return maintainTokens();
         case "retention":

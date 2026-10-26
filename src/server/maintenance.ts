@@ -4,6 +4,7 @@ import { PLATFORM_META } from "@/lib/platforms";
 import { db } from "@/server/db";
 import { contentItems, publishingJobs, socialAccounts } from "@/server/db/schema";
 import { purgeExpiredDocumentFiles } from "@/server/documents/service";
+import { archiveStaleItems, runAutopilot, syncDueAccounts } from "@/server/engagement/service";
 import { purgeOldIdempotencyKeys } from "@/server/http/idempotency";
 import { logger } from "@/server/logger";
 import { notify } from "@/server/notifications/service";
@@ -82,10 +83,18 @@ export async function scheduleReminders(now = new Date()) {
   return soon.length;
 }
 
+/** Every few minutes: pull comments/mentions, then let autopilot rules answer or draft. */
+export async function engagement() {
+  const sync = await syncDueAccounts();
+  const autopilot = await runAutopilot();
+  return { ...sync, ...autopilot };
+}
+
 /** Every few hours: retention + housekeeping. */
 export async function retention() {
   const files = await purgeExpiredDocumentFiles();
   await purgeExpiredStates();
   await purgeOldIdempotencyKeys();
+  await archiveStaleItems();
   return { documentFilesPurged: files };
 }
