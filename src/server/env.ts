@@ -62,6 +62,8 @@ const schema = z.object({
   INSTAGRAM_APP_ID: optional,
   INSTAGRAM_APP_SECRET: optional,
   INSTAGRAM_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default("v26.0"),
+  // Request instagram_business_manage_insights (must be enabled on the Meta app, else login fails).
+  INSTAGRAM_REQUEST_INSIGHTS: bool(true),
 
   X_CLIENT_ID: optional,
   X_CLIENT_SECRET: optional,
@@ -82,6 +84,10 @@ const schema = z.object({
   DOCUMENT_MAX_MB: int(15),
   DOCUMENT_RETENTION_DAYS: int(30),
 
+  // Shown on Terms / Privacy pages and in app-review submissions.
+  LEGAL_ENTITY_NAME: z.string().default("Verdant"),
+  SUPPORT_EMAIL: z.string().email().optional().or(z.literal("").transform(() => undefined)),
+  LEGAL_JURISDICTION: z.string().default("the jurisdiction where the operator is established"),
   ADMIN_EMAILS: z
     .string()
     .optional()

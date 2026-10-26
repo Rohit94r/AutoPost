@@ -33,7 +33,8 @@ export class InstagramAdapter implements PlatformAdapter {
   }
 
   requestedScopes() {
-    return ["instagram_business_basic", "instagram_business_content_publish", "instagram_business_manage_insights"];
+    const base = ["instagram_business_basic", "instagram_business_content_publish"];
+    return env().INSTAGRAM_REQUEST_INSIGHTS ? [...base, "instagram_business_manage_insights"] : base;
   }
 
   requiredPublishScopes() {
