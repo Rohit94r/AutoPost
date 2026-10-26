@@ -8,7 +8,7 @@ export const PERSPECTIVES = ["first_person", "third_person", "brand_we"] as cons
 export const FORMALITY = ["casual", "neutral", "formal"] as const;
 export const EMOJI = ["none", "minimal", "moderate"] as const;
 export const HASHTAG_PREF = ["none", "minimal", "moderate", "generous"] as const;
-export const REWRITE_OPS = ["improve", "rewrite", "shorten", "expand", "tone", "simplify", "fix_grammar"] as const;
+export const REWRITE_OPS = ["improve", "humanize", "rewrite", "shorten", "expand", "tone", "simplify", "fix_grammar"] as const;
 
 export const writingControlsSchema = z.object({
   tone: z.enum(TONES).default("conversational"),
@@ -39,6 +39,7 @@ export const TONE_LABEL: Record<(typeof TONES)[number], string> = {
 
 export const REWRITE_LABEL: Record<(typeof REWRITE_OPS)[number], string> = {
   improve: "Improve writing",
+  humanize: "Make it sound human",
   rewrite: "Rewrite",
   shorten: "Shorten",
   expand: "Expand",

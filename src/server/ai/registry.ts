@@ -21,6 +21,7 @@ export const DEFAULT_ROUTES: Record<AITask, ModelRoute> = {
   extract: { provider: "gemini", model: "gemini-3.8-flash" },
   critique: { provider: "gemini", model: "gemini-3.8-flash" },
   voice: { provider: "gemini", model: "gemini-3.8-flash" },
+  reply: { provider: "groq", model: "openai/gpt-oss-120b" },
 };
 
 export const PROVIDER_DEFAULT_MODEL: Record<ProviderId, string> = {
@@ -65,6 +66,7 @@ export class ModelRegistry {
       extract: e.AI_MODEL_EXTRACT,
       critique: e.AI_MODEL_CRITIQUE,
       voice: e.AI_MODEL_VOICE,
+      reply: e.AI_MODEL_REPLY,
     }[task];
     return parseRoute(override) ?? DEFAULT_ROUTES[task];
   }

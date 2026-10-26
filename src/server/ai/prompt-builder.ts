@@ -77,6 +77,22 @@ const PLATFORM_GUIDANCE: Record<Platform, string> = {
   instagram:
     "Instagram: caption for an image/Reel. Strong first line (it is truncated in the feed), natural paragraph breaks, a light call to action if appropriate. Hashtags (if preferred) grouped at the end, max 30. Up to 2200 characters.",
   x: "X: concise and clear; the main message in the first sentence. Hard limit of 280 weighted characters INCLUDING hashtags (URLs count as 23, emojis as 2). Links/hashtags only when genuinely useful (1–2 max).",
+  facebook:
+    "Facebook Page: friendly and community-minded, 1–3 short paragraphs, a clear takeaway, an optional question to invite comments. Hashtags rarely (0–2).",
+  threads: "Threads: casual, conversational, like talking to followers. Max 500 characters. At most one topic tag (hashtag). No hashtag lists.",
+  youtube:
+    "YouTube video description: first 2 lines summarise the video (shown above the fold), then a few short paragraphs of context. Up to 5000 characters; 3–5 relevant hashtags at the end at most.",
+  tiktok: "TikTok caption: punchy hook in the first line, very short, casual, 2–5 relevant hashtags. Up to 2200 characters but aim for under 150.",
+  pinterest: "Pinterest Pin description: 1–3 descriptive sentences with natural keywords people search for, under 500 characters. No hashtag lists.",
+  reddit:
+    "Reddit post body: plain, genuine, community-first; explain the context and what you learned. No marketing tone, no hashtags, no emojis. Markdown paragraphs are fine.",
+  bluesky: "Bluesky: short and conversational, max 300 characters including links. 0–2 hashtags.",
+  mastodon: "Mastodon: thoughtful, plain-spoken, max 500 characters. Use CamelCase hashtags for accessibility (e.g. #DataScience), 1–3 at the end.",
+  telegram: "Telegram channel post: clear headline-style first line, then short paragraphs. Up to 4096 characters (1024 if an image is attached). Emojis sparingly.",
+  discord: "Discord channel announcement: friendly and direct, short paragraphs, max 2000 characters. No hashtags.",
+  wordpress:
+    "Blog post: a complete short article (300–800 words) with an engaging intro, 2–4 short sections expanding on the facts, and a brief conclusion. Plain text paragraphs separated by blank lines; no hashtags.",
+  webhook: "Website post: clear, well-structured short update suitable for a news/updates page. No hashtags.",
 };
 
 export function platformGuidance(platforms: Platform[]) {

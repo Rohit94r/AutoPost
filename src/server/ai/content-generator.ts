@@ -95,6 +95,8 @@ export async function adaptToPlatforms(
 
 const OP_INSTRUCTIONS = {
   improve: "Improve clarity, flow and specificity while keeping the author's voice and every fact.",
+  humanize:
+    "Make it read like a real person wrote it: plain everyday words, varied sentence rhythm, contractions where natural, concrete details over abstractions. Remove robotic phrasing, filler transitions, clichés and over-polished marketing tone. Keep every fact and the meaning.",
   rewrite: "Rewrite with fresh wording and structure, same meaning and facts.",
   shorten: "Make it noticeably shorter (about half) while keeping the key message and facts.",
   expand: "Expand with more context and explanation drawn ONLY from what is already stated — do not add new facts, examples or claims.",

@@ -1,6 +1,6 @@
 export type ProviderId = "groq" | "gemini";
 
-export type AITask = "draft" | "rewrite" | "adapt" | "hashtags" | "extract" | "critique" | "voice";
+export type AITask = "draft" | "rewrite" | "adapt" | "hashtags" | "extract" | "critique" | "voice" | "reply";
 
 export type MessagePart = { type: "text"; text: string } | { type: "file"; mimeType: string; data: Buffer };
 

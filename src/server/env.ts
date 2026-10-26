@@ -50,6 +50,9 @@ const schema = z.object({
   AI_MODEL_EXTRACT: optional,
   AI_MODEL_CRITIQUE: optional,
   AI_MODEL_VOICE: optional,
+  AI_MODEL_REPLY: optional,
+  // Optional image generation, e.g. gemini:<image-capable model id>. Unset = image prompts only.
+  AI_MODEL_IMAGE: optional,
   AI_MODEL_FALLBACK: optional,
   AI_TIMEOUT_MS: int(45_000),
   AI_MAX_RETRIES: int(2),
@@ -64,11 +67,38 @@ const schema = z.object({
   INSTAGRAM_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default("v26.0"),
   // Request instagram_business_manage_insights (must be enabled on the Meta app, else login fails).
   INSTAGRAM_REQUEST_INSIGHTS: bool(true),
+  // Request instagram_business_manage_comments (needed for the inbox / autopilot).
+  INSTAGRAM_REQUEST_COMMENTS: bool(true),
+
+  FACEBOOK_APP_ID: optional,
+  FACEBOOK_APP_SECRET: optional,
+  FACEBOOK_GRAPH_VERSION: z.string().regex(/^vd+.d+$/).default("v26.0"),
+
+  THREADS_APP_ID: optional,
+  THREADS_APP_SECRET: optional,
+
+  // YouTube uses a Google OAuth client (can be the same project as Google sign-in).
+  YOUTUBE_CLIENT_ID: optional,
+  YOUTUBE_CLIENT_SECRET: optional,
+
+  TIKTOK_CLIENT_KEY: optional,
+  TIKTOK_CLIENT_SECRET: optional,
+
+  PINTEREST_APP_ID: optional,
+  PINTEREST_APP_SECRET: optional,
+
+  REDDIT_CLIENT_ID: optional,
+  REDDIT_CLIENT_SECRET: optional,
+  // Reddit requires a descriptive User-Agent including your Reddit username.
+  REDDIT_USERNAME: optional,
 
   X_CLIENT_ID: optional,
   X_CLIENT_SECRET: optional,
   X_MAX_POST_LENGTH: int(280),
   ANALYTICS_X_ENABLED: bool(false),
+  // Reading X replies/mentions is billed per post read; opt in deliberately.
+  ENGAGEMENT_X_ENABLED: bool(false),
+  ENGAGEMENT_SYNC_MINUTES: int(15),
 
   STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
   STORAGE_LOCAL_DIR: z.string().default("./storage"),
