@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import postgres from "postgres";
 import { env } from "@/server/env";
+import { pgConnection } from "./connection";
 import * as schema from "./schema";
 
 export type Database = PgDatabase<PgQueryResultHKT, typeof schema>;
@@ -15,13 +16,8 @@ let override: Database | undefined;
 
 function createDb(): Database {
   if (globalForDb.__verdantDb) return globalForDb.__verdantDb;
-  const url = env().DATABASE_URL;
-  const sql = postgres(url, {
-    max: Number(process.env.DATABASE_POOL_SIZE ?? 10),
-    idle_timeout: 30,
-    connect_timeout: 10,
-    prepare: !url.includes("pgbouncer=true"),
-  });
+  const { url, options } = pgConnection(env().DATABASE_URL, { max: Number(process.env.DATABASE_POOL_SIZE || 10) });
+  const sql = postgres(url, options);
   const db = drizzle(sql, { schema }) as unknown as Database;
   globalForDb.__verdantDb = db;
   globalForDb.__verdantSql = sql;
