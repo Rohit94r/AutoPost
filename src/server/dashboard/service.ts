@@ -1,0 +1,48 @@
+import "server-only";
+import { and, asc, desc, eq, gte, inArray, ne } from "drizzle-orm";
+import { db } from "@/server/db";
+import { auditLogs, contentItems, publishingJobs, socialAccounts, users } from "@/server/db/schema";
+import { statusCounts } from "@/server/publishing/service";
+import { usageSummary } from "@/server/usage/service";
+
+export async function dashboardData(workspaceId: string) {
+  const now = new Date();
+  const [counts, accounts, upcoming, recent, usage, drafts] = await Promise.all([
+    statusCounts(workspaceId),
+    db
+      .select({ id: socialAccounts.id, platform: socialAccounts.platform, displayName: socialAccounts.displayName, username: socialAccounts.username, avatarUrl: socialAccounts.avatarUrl, status: socialAccounts.status, tokenExpiresAt: socialAccounts.tokenExpiresAt })
+      .from(socialAccounts)
+      .where(and(eq(socialAccounts.workspaceId, workspaceId), ne(socialAccounts.status, "disconnected"))),
+    db
+      .select({ id: publishingJobs.id, platform: publishingJobs.platform, scheduledAt: publishingJobs.scheduledAt, timezone: publishingJobs.timezone, status: publishingJobs.status, contentId: contentItems.id, title: contentItems.title, account: socialAccounts.displayName })
+      .from(publishingJobs)
+      .innerJoin(contentItems, eq(contentItems.id, publishingJobs.contentId))
+      .innerJoin(socialAccounts, eq(socialAccounts.id, publishingJobs.socialAccountId))
+      .where(and(eq(publishingJobs.workspaceId, workspaceId), inArray(publishingJobs.status, ["scheduled", "queued"]), gte(publishingJobs.scheduledAt, new Date(now.getTime() - 3600_000))))
+      .orderBy(asc(publishingJobs.scheduledAt))
+      .limit(8),
+    db
+      .select({ id: auditLogs.id, action: auditLogs.action, targetType: auditLogs.targetType, targetId: auditLogs.targetId, metadata: auditLogs.metadata, createdAt: auditLogs.createdAt, actor: users.name })
+      .from(auditLogs)
+      .leftJoin(users, eq(users.id, auditLogs.actorUserId))
+      .where(eq(auditLogs.workspaceId, workspaceId))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(10),
+    usageSummary(workspaceId),
+    db.select({ id: contentItems.id }).from(contentItems).where(and(eq(contentItems.workspaceId, workspaceId), eq(contentItems.status, "draft"))),
+  ]);
+  const c = (s: string) => counts.find((x) => x.status === s)?.n ?? 0;
+  return {
+    stats: {
+      scheduled: c("scheduled") + c("queued"),
+      published: c("published"),
+      failed: c("failed") + c("needs_reconnection"),
+      processing: c("processing"),
+      drafts: drafts.length,
+    },
+    accounts,
+    upcoming,
+    recent,
+    usage,
+  };
+}
