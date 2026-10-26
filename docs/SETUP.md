@@ -27,7 +27,10 @@ Fill in `.env.local`:
 
 ```bash
 pnpm db:migrate        # applies drizzle/*.sql to a clean database
+pnpm db:seed           # creates the login from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
 ```
+
+`db:seed` creates a verified, onboarded account with its own workspace (run it again to reset the password). Keep the values in `.env.local` only, and add the email to `ADMIN_EMAILS` to open `/admin`.
 
 After changing `src/server/db/schema/index.ts`, run `pnpm db:generate --name <change>` to create a new migration. Commit it, then run `pnpm db:migrate` in each environment. Never edit applied migrations.
 
