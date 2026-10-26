@@ -32,6 +32,10 @@ export default function HelpPage() {
       <div className="mx-auto max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-moss">Help &amp; privacy</p>
         <h1 className="mt-2 font-display text-5xl text-white">Straight answers</h1>
+        <p className="mt-3 text-sm text-fog">
+          Read the full <Link href="/terms" className="text-moss underline">Terms of Service</Link>, <Link href="/privacy" className="text-moss underline">Privacy Policy</Link> and{" "}
+          <Link href="/data-deletion" className="text-moss underline">data deletion instructions</Link>.
+        </p>
         <div className="mt-8 space-y-3">
           {FAQ.map(([q, a]) => (
             <details key={q} className="glass group p-5 open:bg-white/[0.09]">

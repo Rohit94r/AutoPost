@@ -151,7 +151,19 @@ export function AuthForm({ mode, googleEnabled }: { mode: Mode; googleEnabled?: 
           </>
         )}
       </p>
-      {mode === "sign-up" && <p className="mt-3 text-center text-xs text-stone">By continuing you agree that content you choose to process is sent to the configured AI providers.</p>}
+      {mode === "sign-up" && (
+        <p className="mt-3 text-center text-xs text-stone">
+          By creating an account you agree to the{" "}
+          <Link href="/terms" className="underline hover:text-white">
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="underline hover:text-white">
+            Privacy Policy
+          </Link>
+          , including processing of content you choose to send to our AI providers.
+        </p>
+      )}
     </div>
   );
 }

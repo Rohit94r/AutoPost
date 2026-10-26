@@ -339,7 +339,13 @@ function Footer() {
         <p>© {new Date().getFullYear()} Verdant. Photos from Unsplash.</p>
         <div className="flex gap-4">
           <Link href="/help" className="hover:text-white">
-            Help &amp; privacy
+            Help
+          </Link>
+          <Link href="/terms" className="hover:text-white">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:text-white">
+            Privacy
           </Link>
           <Link href="/sign-in" className="hover:text-white">
             Sign in
