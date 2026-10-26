@@ -48,6 +48,6 @@ test("sign up → onboarding → save a draft → find it in the library", async
   await page.getByRole("button", { name: /save draft/i }).click();
   await expect(page.getByText("Draft saved")).toBeVisible();
 
-  await page.goto("/library?q=E2E");
+  await page.goto("/history?q=E2E");
   await expect(page.getByRole("link", { name: "E2E draft" })).toBeVisible();
 });
