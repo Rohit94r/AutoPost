@@ -1,5 +1,5 @@
 "use client";
-import { AlertTriangle, CalendarClock, Check, ExternalLink, Hash, Lock, Save, Send, Sparkles, Wand2 } from "lucide-react";
+import { AlertTriangle, CalendarClock, Check, ClipboardCopy, ExternalLink, FileScan, Gauge, Hash, ImagePlus, Lock, Save, Send, Sparkles, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, TagInput, Textarea } from "@/components/ui/field";
 import { CardTitle, GlassCard, Notice } from "@/components/ui/misc";
-import { Switch, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/overlay";
+import { Dialog, Switch, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/overlay";
 import { PlatformBadge, PlatformIcon, StatusBadge } from "@/components/ui/platform";
 import { api, ApiError, errorMessage } from "@/lib/api-client";
 import { finalPostText, PLATFORM_META, PLATFORMS, platformLimits, textLength, validateMedia, type Platform, type ValidationIssue } from "@/lib/platforms";
@@ -16,6 +16,8 @@ import { COMMON_TIMEZONES } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { EMOJI, HASHTAG_PREF, LENGTHS, TONES, TONE_LABEL, type WritingControls } from "@/lib/writing";
 import { DiffDialog, type RewriteResult } from "./diff-dialog";
+import { DocumentImport } from "./document-import";
+import { ImageLab } from "./image-lab";
 import { MediaPicker } from "./media-picker";
 import { PlatformPreview } from "./preview";
 import type { AccountOption, BrandOption, JobSummary, MediaItem, VariantState } from "./types";
@@ -45,11 +47,20 @@ interface Props {
   defaultScheduleLocal: string;
   xMaxLength: number;
   aiAvailable: boolean;
+  /** Open a starting tool on load (from the dashboard or a notification link). */
+  startWith: Tool | null;
+  initialDocumentId: string | null;
+  documents: { maxMb: number; retentionDays: number; aiReady: boolean };
 }
 
 type Mode = "now" | "schedule";
+export type Tool = "document" | "image";
+interface Critique {
+  score: number;
+  issues: { severity: string; message: string; quote?: string }[];
+}
 
-export function Composer({ initial, accounts, brands, timezone, defaultScheduleLocal, xMaxLength, aiAvailable }: Props) {
+export function Composer({ initial, accounts, brands, timezone, defaultScheduleLocal, xMaxLength, aiAvailable, startWith, initialDocumentId, documents }: Props) {
   const router = useRouter();
   const [contentId, setContentId] = useState(initial.id);
   const [title, setTitle] = useState(initial.title);
@@ -73,6 +84,8 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
   const [busy, setBusy] = useState<null | string>(null);
   const [rewrite, setRewrite] = useState<(RewriteResult & { target: Platform | "master" }) | null>(null);
   const [aiNote, setAiNote] = useState<string | null>(null);
+  const [tool, setTool] = useState<Tool | null>(startWith);
+  const [critiques, setCritiques] = useState<Partial<Record<Platform, Critique>>>({});
   const idemKey = useRef<string | null>(null);
 
   const lockedPlatforms = new Set(initial.jobs.filter((j) => j.status === "published" || j.status === "processing").map((j) => j.platform));
@@ -139,6 +152,20 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
     try {
       const r = await api<{ hashtags: string[] }>("/ai/hashtags", { method: "POST", json: { text: v.body, platform: p, count: p === "instagram" ? 8 : 3 } });
       setVariant(p, { hashtags: [...new Set([...v.hashtags, ...r.hashtags])] });
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function critique(p: Platform) {
+    const text = finalPostText(p, getVariant(p).body, getVariant(p).hashtags, linkUrl || null);
+    if (!text.trim()) return;
+    setBusy("critique");
+    try {
+      const r = await api<Critique>("/ai/critique", { method: "POST", json: { text, platform: p } });
+      setCritiques((c) => ({ ...c, [p]: r }));
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -229,6 +256,15 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
             <Input aria-label="Internal label" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Internal label (only you see this)" className="h-9 border-transparent bg-transparent px-0 text-lg font-semibold focus:bg-black/20 focus:px-3" />
             {initial.status !== "draft" && <StatusBadge status={initial.status} />}
           </div>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-stone">Start from:</span>
+            <Button size="sm" variant="glass" onClick={() => setTool("document")}>
+              <FileScan /> A document
+            </Button>
+            <Button size="sm" variant="glass" onClick={() => setTool("image")}>
+              <ImagePlus /> An AI image
+            </Button>
+          </div>
           <Field label="Main content: your idea, notes or full draft" htmlFor="master">
             <Textarea id="master" rows={7} value={body} onChange={(e) => setBody(e.target.value)} placeholder="e.g. Finished my Google Data Analytics certificate: 8 courses, capstone on why bike-share riders churn. Learned SQL + R properly for the first time." />
           </Field>
@@ -279,6 +315,9 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
                 ))}
               </Select>
             </Field>
+            <Field label="Audience (optional)" htmlFor="audience">
+              <Input id="audience" value={controls.audience ?? ""} onChange={(e) => setControls((c) => ({ ...c, audience: e.target.value || undefined }))} placeholder="e.g. hiring managers in data" maxLength={200} />
+            </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Emoji" htmlFor="emoji">
                 <Select id="emoji" value={controls.emoji ?? ""} onChange={(e) => setControls((c) => ({ ...c, emoji: (e.target.value || undefined) as WritingControls["emoji"] }))}>
@@ -317,7 +356,16 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
         </GlassCard>
 
         <GlassCard>
-          <CardTitle description="Validated on upload. Instagram images are converted to JPEG automatically.">Media</CardTitle>
+          <CardTitle
+            description="Validated on upload. Instagram images are converted to JPEG automatically."
+            action={
+              <Button size="sm" variant="ghost" onClick={() => setTool("image")}>
+                <ImagePlus /> Create with AI
+              </Button>
+            }
+          >
+            Media
+          </CardTitle>
           <MediaPicker selected={media} onChange={setMedia} />
         </GlassCard>
       </div>
@@ -397,7 +445,14 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
                         <option value="simplify">Simplify</option>
                         <option value="fix_grammar">Fix grammar</option>
                       </Select>
+                      <Button size="sm" variant="ghost" onClick={() => critique(p)} loading={busy === "critique"} disabled={!aiAvailable || !v.body.trim() || !!busy}>
+                        <Gauge /> Check quality
+                      </Button>
+                      <Button size="sm" variant="ghost" aria-label="Copy text" onClick={() => void navigator.clipboard.writeText(final).then(() => toast.success("Copied"))} disabled={!final.trim()}>
+                        <ClipboardCopy />
+                      </Button>
                     </div>
+                    {critiques[p] && <CritiqueCard critique={critiques[p]} onDismiss={() => setCritiques((c) => ({ ...c, [p]: undefined }))} />}
                     <label className="flex items-center gap-2 text-sm text-fog">
                       <Switch checked={v.includeMedia} onCheckedChange={(c) => setVariant(p, { includeMedia: c })} label="Include media" /> Include attached media
                     </label>
@@ -447,7 +502,7 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
           </GlassCard>
         )}
 
-        <GlassCard strong className="sticky bottom-3 z-10">
+        <GlassCard strong>
           <CardTitle description="One job per account, each tracked separately.">Publish</CardTitle>
           {accounts.length === 0 ? (
             <Notice tone="warn">
@@ -525,6 +580,26 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
         </GlassCard>
       </div>
 
+      <Dialog
+        open={tool === "document"}
+        onOpenChange={(o) => !o && setTool(null)}
+        title="Start from a document"
+        description="Upload a certificate, letter, poster or summary. Check the facts, then get a draft for every platform."
+        wide="xl"
+      >
+        <DocumentImport initialId={initialDocumentId} {...documents} />
+      </Dialog>
+      <Dialog open={tool === "image"} onOpenChange={(o) => !o && setTool(null)} title="Create an image with AI" description="Get an image prompt and alt text from your post, then create the image and attach it." wide>
+        <ImageLab
+          disabled={!aiAvailable}
+          initialText={body}
+          onAttach={(m) => {
+            setMedia((cur) => (cur.some((x) => x.id === m.id) ? cur : [...cur, m]));
+            setTool(null);
+            toast.success("Image attached to this post");
+          }}
+        />
+      </Dialog>
       <DiffDialog
         result={rewrite}
         onClose={() => setRewrite(null)}
@@ -534,6 +609,34 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
           setRewrite(null);
         }}
       />
+    </div>
+  );
+}
+
+function CritiqueCard({ critique, onDismiss }: { critique: Critique; onDismiss: () => void }) {
+  return (
+    <div className="rounded-xl bg-black/20 p-3">
+      <p className="mb-2 flex items-center justify-between text-sm font-medium text-white">
+        <span className="inline-flex items-center gap-1.5">
+          <Gauge className="size-4 text-moss" /> Editor&apos;s read · {critique.score.toFixed(1)}/10
+        </span>
+        <button className="text-xs text-stone hover:text-white" onClick={onDismiss}>
+          Dismiss
+        </button>
+      </p>
+      {critique.issues.length === 0 ? (
+        <p className="text-xs text-fog">No significant issues found.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {critique.issues.map((i, k) => (
+            <li key={k} className="text-xs">
+              <span className={cn("mr-2 rounded px-1.5 py-0.5 text-[10px] uppercase", i.severity === "high" ? "bg-red-500/20 text-red-200" : i.severity === "medium" ? "bg-amber-400/20 text-amber-100" : "bg-white/10 text-fog")}>{i.severity}</span>
+              <span className="text-mist">{i.message}</span>
+              {i.quote && <span className="mt-0.5 block italic text-stone">“{i.quote}”</span>}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

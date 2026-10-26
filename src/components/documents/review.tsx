@@ -22,6 +22,9 @@ export interface Fact {
 }
 
 interface Props {
+  /** Re-fetch the document (called while extraction runs and after a retry). */
+  onRefresh: () => void;
+  onDeleted: () => void;
   doc: {
     id: string;
     originalFilename: string;
@@ -47,7 +50,7 @@ interface Props {
 
 const CONF = { high: ["bg-moss", "Clearly printed"], medium: ["bg-sun", "Partly legible, please check"], low: ["bg-dawn", "Uncertain, please verify"] } as const;
 
-export function DocumentReview({ doc }: Props) {
+export function DocumentReview({ doc, onRefresh, onDeleted }: Props) {
   const router = useRouter();
   const ex = doc.extraction;
   const [facts, setFacts] = useState<Fact[]>(ex?.reviewedFields ?? ex?.fields ?? []);
@@ -61,9 +64,9 @@ export function DocumentReview({ doc }: Props) {
 
   useEffect(() => {
     if (doc.status !== "processing" && doc.status !== "uploaded") return;
-    const t = setInterval(() => router.refresh(), 3000);
+    const t = setInterval(onRefresh, 3000);
     return () => clearInterval(t);
-  }, [doc.status, router]);
+  }, [doc.status, onRefresh]);
 
   const update = (i: number, patch: Partial<Fact>) => {
     setReviewed(false);
@@ -92,7 +95,7 @@ export function DocumentReview({ doc }: Props) {
     setBusy("generate");
     try {
       const r = await api<{ contentId: string }>(`/documents/${doc.id}/generate`, { method: "POST", json: { direction, platforms } });
-      toast.success("Drafts created. Review them in the composer.");
+      toast.success("Drafts created. Review each version, then publish.");
       router.push(`/compose?id=${r.contentId}`);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -104,7 +107,7 @@ export function DocumentReview({ doc }: Props) {
     setBusy("retry");
     try {
       await api(`/documents/${doc.id}/extract`, { method: "POST" });
-      router.refresh();
+      onRefresh();
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -114,22 +117,25 @@ export function DocumentReview({ doc }: Props) {
 
   async function remove() {
     if (!confirm("Delete this document and its extracted facts?")) return;
-    await api(`/documents/${doc.id}`, { method: "DELETE" });
-    router.push("/documents");
-    router.refresh();
+    try {
+      await api(`/documents/${doc.id}`, { method: "DELETE" });
+      onDeleted();
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
       <div className="space-y-4">
         <GlassCard>
           <CardTitle action={<StatusBadge status={doc.status} />}>Original</CardTitle>
           {doc.previewUrl ? (
             doc.mimeType === "application/pdf" ? (
-              <iframe src={doc.previewUrl} title="Document preview" className="h-[520px] w-full rounded-xl bg-white" />
+              <iframe src={doc.previewUrl} title="Document preview" className="h-[440px] w-full rounded-xl bg-white" />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={doc.previewUrl} alt={`Preview of ${doc.originalFilename}`} className="max-h-[520px] w-full rounded-xl object-contain" />
+              <img src={doc.previewUrl} alt={`Preview of ${doc.originalFilename}`} className="max-h-[440px] w-full rounded-xl object-contain" />
             )
           ) : (
             <p className="text-sm text-fog">The original file was deleted under your retention policy. Extracted facts are kept.</p>

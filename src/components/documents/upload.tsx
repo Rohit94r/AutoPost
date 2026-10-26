@@ -1,14 +1,12 @@
 "use client";
 import { FileUp, ShieldCheck } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
-export function DocumentUpload({ maxMb, retentionDays, aiReady }: { maxMb: number; retentionDays: number; aiReady: boolean }) {
-  const router = useRouter();
+export function DocumentUpload({ maxMb, retentionDays, aiReady, onUploaded }: { maxMb: number; retentionDays: number; aiReady: boolean; onUploaded: (id: string) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -23,7 +21,7 @@ export function DocumentUpload({ maxMb, retentionDays, aiReady }: { maxMb: numbe
     try {
       const r = await api<{ document: { id: string } }>("/documents", { method: "POST", body: fd });
       toast.success("Uploaded. Extracting facts now.");
-      router.push(`/documents/${r.document.id}`);
+      onUploaded(r.document.id);
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {

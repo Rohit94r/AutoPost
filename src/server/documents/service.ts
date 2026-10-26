@@ -191,13 +191,13 @@ export async function processDocument(input: { workspaceId: string; userId: stri
       await tx.update(uploadedDocuments).set({ status: "extracted", pageCount, aiProvider: res.provider, error: null }).where(eq(uploadedDocuments.id, doc.id));
     });
     await recordUsage({ workspaceId: input.workspaceId, userId: input.userId, metric: "document_processed", quantity: 1, metadata: { method } });
-    await notify({ workspaceId: input.workspaceId, userId: input.userId, type: "document_ready", severity: "success", title: `Facts extracted from ${doc.originalFilename}`, body: "Review and correct them before generating content.", link: `/documents/${doc.id}` });
+    await notify({ workspaceId: input.workspaceId, userId: input.userId, type: "document_ready", severity: "success", title: `Facts extracted from ${doc.originalFilename}`, body: "Review and correct them before generating content.", link: `/compose?document=${doc.id}` });
     log.info({ method, fields: fields.length }, "document extracted");
   } catch (err) {
     const message = err instanceof AppError ? err.message : "Extraction failed. Please try again.";
     log.warn({ err }, "document extraction failed");
     await db.update(uploadedDocuments).set({ status: "failed", error: message }).where(eq(uploadedDocuments.id, doc.id));
-    await notify({ workspaceId: input.workspaceId, userId: input.userId, type: "document_failed", severity: "error", title: `Couldn't process ${doc.originalFilename}`, body: message, link: `/documents/${doc.id}` });
+    await notify({ workspaceId: input.workspaceId, userId: input.userId, type: "document_failed", severity: "error", title: `Couldn't process ${doc.originalFilename}`, body: message, link: `/compose?document=${doc.id}` });
     if (!(err instanceof AppError)) throw err;
   }
 }

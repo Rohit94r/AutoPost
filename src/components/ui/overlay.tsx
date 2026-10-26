@@ -4,12 +4,12 @@ import { Dialog as D, Switch as S, Tabs as T, Tooltip as TT } from "radix-ui";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export function Dialog({ open, onOpenChange, title, description, children, footer, wide }: { open: boolean; onOpenChange: (o: boolean) => void; title: string; description?: React.ReactNode; children?: React.ReactNode; footer?: React.ReactNode; wide?: boolean }) {
+export function Dialog({ open, onOpenChange, title, description, children, footer, wide }: { open: boolean; onOpenChange: (o: boolean) => void; title: string; description?: React.ReactNode; children?: React.ReactNode; footer?: React.ReactNode; wide?: boolean | "xl" }) {
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
         <D.Overlay className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm data-[state=open]:animate-[rise_.2s_ease]" />
-        <D.Content className={cn("glass-strong fixed left-1/2 top-1/2 z-50 max-h-[88dvh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-6 focus:outline-none", wide ? "max-w-3xl" : "max-w-lg")}>
+        <D.Content className={cn("glass-strong fixed left-1/2 top-1/2 z-50 max-h-[88dvh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-6 focus:outline-none", wide === "xl" ? "max-w-5xl" : wide ? "max-w-3xl" : "max-w-lg")}>
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <D.Title className="text-lg font-semibold text-white">{title}</D.Title>

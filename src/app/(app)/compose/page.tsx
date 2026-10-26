@@ -12,16 +12,19 @@ import { env, integrationStatus } from "@/server/env";
 
 export const metadata = { title: "Create post" };
 
-export default async function ComposePage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+const UUID = /^[0-9a-f-]{36}$/i;
+
+export default async function ComposePage({ searchParams }: { searchParams: Promise<{ id?: string; start?: string; document?: string }> }) {
   const ctx = await requirePageContext();
-  const { id } = await searchParams;
+  const { id, start, document } = await searchParams;
+  const documentId = document && UUID.test(document) ? document : null;
   const [accounts, brands, existing] = await Promise.all([
     db
       .select({ id: socialAccounts.id, platform: socialAccounts.platform, displayName: socialAccounts.displayName, username: socialAccounts.username, avatarUrl: socialAccounts.avatarUrl, status: socialAccounts.status, lastError: socialAccounts.lastError })
       .from(socialAccounts)
       .where(and(eq(socialAccounts.workspaceId, ctx.workspace.id), ne(socialAccounts.status, "disconnected"))),
     listBrands(ctx.workspace.id),
-    id && /^[0-9a-f-]{36}$/i.test(id) ? getContent(ctx.workspace.id, id).catch(() => null) : null,
+    id && UUID.test(id) ? getContent(ctx.workspace.id, id).catch(() => null) : null,
   ]);
 
   const initial: ComposerInitial = existing
@@ -53,9 +56,10 @@ export default async function ComposePage({ searchParams }: { searchParams: Prom
     : { id: null, title: "", body: "", linkUrl: null, hashtags: [], callToAction: null, campaign: null, tags: [], brandProfileId: null, media: [], variants: {}, jobs: [], status: "draft" };
 
   const integrations = integrationStatus();
+  const e = env();
   return (
     <>
-      <PageHeader eyebrow="Composer" title={existing ? "Edit post" : "Create a post"} description="Write once, shape it per platform, preview, then publish or schedule." />
+      <PageHeader eyebrow="Composer" title={existing ? "Edit post" : "Create a post"} description="Write it yourself or start from a document. AI shapes it for each platform, you preview it, then publish or schedule." />
       <Composer
         key={existing?.id ?? "new"}
         initial={initial}
@@ -63,8 +67,11 @@ export default async function ComposePage({ searchParams }: { searchParams: Prom
         brands={brands.map((b) => ({ id: b.id, name: b.name, isDefault: b.isDefault }))}
         timezone={ctx.workspace.timezone}
         defaultScheduleLocal={suggestedScheduleLocal(ctx.workspace.timezone)}
-        xMaxLength={env().X_MAX_POST_LENGTH}
+        xMaxLength={e.X_MAX_POST_LENGTH}
         aiAvailable={integrations.groq || integrations.gemini}
+        startWith={documentId || start === "document" ? "document" : start === "image" ? "image" : null}
+        initialDocumentId={documentId}
+        documents={{ maxMb: e.DOCUMENT_MAX_MB, retentionDays: ctx.workspace.documentRetentionDays, aiReady: integrations.gemini || Boolean(e.AI_MODEL_EXTRACT) }}
       />
     </>
   );
