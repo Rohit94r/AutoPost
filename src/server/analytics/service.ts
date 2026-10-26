@@ -105,3 +105,32 @@ export async function collectDueMetrics(limit = 50) {
   }
   return collected;
 }
+
+/** Worker: refresh account-level stats (followers etc.) every 6 hours where the platform offers them. */
+export async function collectAccountStats(limit = 50) {
+  const cutoff = new Date(Date.now() - 6 * 3600_000).toISOString();
+  const accounts = await db
+    .select()
+    .from(socialAccounts)
+    .where(and(eq(socialAccounts.status, "connected"), or(sql`${socialAccounts.metadata}->>'statsUpdatedAt' is null`, sql`${socialAccounts.metadata}->>'statsUpdatedAt' < ${cutoff}`)))
+    .limit(limit);
+  let updated = 0;
+  for (const account of accounts) {
+    const adapter = getAdapter(account.platform);
+    const patch: Record<string, unknown> = { statsUpdatedAt: new Date().toISOString() };
+    if (adapter.fetchAccountStats && (account.platform !== "x" || process.env.ANALYTICS_X_ENABLED === "true")) {
+      try {
+        const token = await getAccessToken(account);
+        patch.stats = await adapter.fetchAccountStats({
+          accessToken: token,
+          account: { externalAccountId: account.externalAccountId, accountType: account.accountType, username: account.username, metadata: account.metadata },
+        });
+        updated++;
+      } catch (err) {
+        logger.warn({ err, accountId: account.id }, "account stats failed");
+      }
+    }
+    await db.update(socialAccounts).set({ metadata: sql`${socialAccounts.metadata} || ${JSON.stringify(patch)}::jsonb` }).where(eq(socialAccounts.id, account.id));
+  }
+  return updated;
+}
