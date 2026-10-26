@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { and, eq, gt, inArray, isNull, lt, sql } from "drizzle-orm";
-import type { Platform } from "@/lib/platforms";
+import { PLATFORM_META, type Platform } from "@/lib/platforms";
 import { audit } from "@/server/audit";
 import { decrypt, encrypt, randomToken, sha256 } from "@/server/crypto";
 import { db, type DbOrTx } from "@/server/db";
@@ -10,7 +10,7 @@ import { env } from "@/server/env";
 import { AppError, badRequest, notConfigured, notFound } from "@/server/errors";
 import { logger } from "@/server/logger";
 import { getAdapter } from "@/server/platforms/registry";
-import { PlatformError, type TokenSet } from "@/server/platforms/types";
+import { PlatformError, type ConnectedProfile, type TokenSet } from "@/server/platforms/types";
 import { assertQuota } from "@/server/usage/service";
 
 const STATE_TTL_MS = 10 * 60_000;
@@ -25,8 +25,9 @@ export function pkcePair() {
 
 /** Step 1: create a single-use state (CSRF) and return the platform's authorization URL. */
 export async function startConnect(input: { workspaceId: string; userId: string; platform: Platform; returnTo?: string }) {
+  if (PLATFORM_META[input.platform].connection === "credentials") throw badRequest("This platform connects with credentials. Use the connect form instead.");
   const adapter = getAdapter(input.platform);
-  if (!adapter.isConfigured()) throw notConfigured(`${input.platform} OAuth`);
+  if (!adapter.isConfigured()) throw notConfigured(`${PLATFORM_META[input.platform].label} sign-in`);
   await assertQuota(input.workspaceId, "account");
   const state = randomToken(32);
   const pkce = adapter.usesPkce ? pkcePair() : null;
@@ -80,15 +81,33 @@ export async function completeConnect(input: { platform: Platform; state: string
     codeVerifier: stateRow.codeVerifierEnc ? decrypt(stateRow.codeVerifierEnc) : undefined,
   });
   const profiles = await adapter.fetchAccounts(tokens);
-  const results: { id: string; displayName: string; status: string; reason?: string }[] = [];
+  const accounts = await storeConnectedAccounts({ workspaceId: stateRow.workspaceId, userId: input.userId, platform: input.platform, tokens, profiles, req: input.req, correlationId: input.correlationId });
+  return { workspaceId: stateRow.workspaceId, returnTo: stateRow.returnTo ?? "/accounts", accounts };
+}
 
+/**
+ * Upsert connected accounts and their encrypted credentials (shared by OAuth callbacks and
+ * credential-based connections). Existing per-account settings in metadata are preserved.
+ */
+export async function storeConnectedAccounts(input: {
+  workspaceId: string;
+  userId: string;
+  platform: Platform;
+  tokens: TokenSet;
+  profiles: ConnectedProfile[];
+  req?: Request;
+  correlationId?: string;
+}) {
+  const { tokens, platform } = input;
+  if (!input.profiles.length) throw badRequest("No account was found for these credentials.");
+  const results: { id: string; displayName: string; status: string; reason?: string }[] = [];
   await db.transaction(async (tx) => {
-    for (const p of profiles) {
-      const { status, missing } = statusFor(input.platform, tokens, p.eligible);
+    for (const p of input.profiles) {
+      const { status, missing } = statusFor(platform, tokens, p.eligible);
       const reason = p.eligibilityReason ?? (missing.length ? `Missing permissions: ${missing.join(", ")}` : null);
       const values = {
-        workspaceId: stateRow.workspaceId,
-        platform: input.platform,
+        workspaceId: input.workspaceId,
+        platform,
         externalAccountId: p.externalId,
         accountType: p.accountType,
         displayName: p.displayName,
@@ -107,13 +126,22 @@ export async function completeConnect(input: { platform: Platform; state: string
       const [acct] = await tx
         .insert(socialAccounts)
         .values(values)
-        .onConflictDoUpdate({ target: [socialAccounts.workspaceId, socialAccounts.platform, socialAccounts.externalAccountId], set: { ...values, updatedAt: new Date() } })
+        .onConflictDoUpdate({
+          target: [socialAccounts.workspaceId, socialAccounts.platform, socialAccounts.externalAccountId],
+          set: { ...values, metadata: sql`${socialAccounts.metadata} || ${JSON.stringify(p.metadata ?? {})}::jsonb`, updatedAt: new Date() },
+        })
         .returning({ id: socialAccounts.id });
-      const enc = { accessTokenEnc: encrypt(tokens.accessToken), refreshTokenEnc: tokens.refreshToken ? encrypt(tokens.refreshToken) : null };
+      // Page-style accounts (Facebook Pages) carry their own token; fall back to the user token.
+      const accessToken = typeof p.metadata?.pageAccessToken === "string" ? (p.metadata.pageAccessToken as string) : tokens.accessToken;
+      const enc = { accessTokenEnc: encrypt(accessToken), refreshTokenEnc: tokens.refreshToken ? encrypt(tokens.refreshToken) : null };
       await tx
         .insert(oauthCredentials)
         .values({ socialAccountId: acct!.id, ...enc })
         .onConflictDoUpdate({ target: oauthCredentials.socialAccountId, set: { ...enc, updatedAt: new Date() } });
+      if (p.metadata && "pageAccessToken" in p.metadata) {
+        // Never keep tokens in plain metadata.
+        await tx.update(socialAccounts).set({ metadata: sql`${socialAccounts.metadata} - 'pageAccessToken'` }).where(eq(socialAccounts.id, acct!.id));
+      }
       // A reconnect revives jobs that were parked waiting for it.
       await tx
         .update(publishingJobs)
@@ -121,12 +149,21 @@ export async function completeConnect(input: { platform: Platform; state: string
         .where(and(eq(publishingJobs.socialAccountId, acct!.id), eq(publishingJobs.status, "needs_reconnection")));
       results.push({ id: acct!.id, displayName: p.displayName, status, reason: reason ?? undefined });
       await audit(
-        { workspaceId: stateRow.workspaceId, actorUserId: input.userId, action: "social_account.connected", targetType: "social_account", targetId: acct!.id, metadata: { platform: input.platform, scopes: tokens.scopes, status }, req: input.req, correlationId: input.correlationId },
+        { workspaceId: input.workspaceId, actorUserId: input.userId, action: "social_account.connected", targetType: "social_account", targetId: acct!.id, metadata: { platform, scopes: tokens.scopes, status }, req: input.req, correlationId: input.correlationId },
         tx,
       );
     }
   });
-  return { workspaceId: stateRow.workspaceId, returnTo: stateRow.returnTo ?? "/accounts", accounts: results };
+  return results;
+}
+
+/** Credential-based platforms (Bluesky, Mastodon, Telegram, Discord, WordPress, webhooks). */
+export async function connectWithCredentials(input: { workspaceId: string; userId: string; platform: Platform; values: Record<string, string>; req?: Request; correlationId?: string }) {
+  const adapter = getAdapter(input.platform);
+  if (!adapter.connectWithCredentials) throw badRequest("This platform connects through its sign-in page, not credentials.");
+  await assertQuota(input.workspaceId, "account");
+  const { tokens, profiles } = await adapter.connectWithCredentials(input.values);
+  return storeConnectedAccounts({ workspaceId: input.workspaceId, userId: input.userId, platform: input.platform, tokens, profiles, req: input.req, correlationId: input.correlationId });
 }
 
 type AccountRow = typeof socialAccounts.$inferSelect;

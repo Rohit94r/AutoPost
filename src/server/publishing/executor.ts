@@ -90,6 +90,9 @@ export async function executePublishingJob(jobId: string, opts: ExecuteOptions):
       account: { externalAccountId: account.externalAccountId, accountType: account.accountType, username: account.username, metadata: account.metadata },
       text,
       media: mediaRows.map((m) => prepareMedia(m, job.platform)),
+      title: content.title,
+      linkUrl: content.linkUrl,
+      idempotencyKey: job.id,
       signal: opts.signal,
     });
 
