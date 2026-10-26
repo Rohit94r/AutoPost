@@ -10,7 +10,7 @@ next-env.d.ts
 .env.local
 .env.*.local
 .env.production
-storage/
+/storage/
 .DS_Store
 graphify-out/
 .test-storage/
