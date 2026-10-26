@@ -112,14 +112,18 @@ export async function imagePrompt(ctx: Ctx, input: { text: string; style?: strin
   return { ...res.data, provider: res.provider, model: res.model };
 }
 
-export const imageGenerationConfigured = () => Boolean(parseRoute(env().AI_MODEL_IMAGE)?.provider === "gemini" && env().GEMINI_API_KEY);
+/** Default image model (verified 2026-10-26). Override with AI_MODEL_IMAGE=gemini:<model>. */
+const DEFAULT_IMAGE_ROUTE = { provider: "gemini" as const, model: "gemini-3.1-flash-image" };
+const imageRoute = () => parseRoute(env().AI_MODEL_IMAGE) ?? DEFAULT_IMAGE_ROUTE;
+
+export const imageGenerationConfigured = () => imageRoute().provider === "gemini" && Boolean(env().GEMINI_API_KEY);
 
 /** Generates an image with the configured Gemini image model. Returns raw bytes for the media library. */
 export async function generateImage(input: { prompt: string; aspectRatio: string }): Promise<{ data: Buffer; mimeType: string; model: string }> {
-  const route = parseRoute(env().AI_MODEL_IMAGE);
+  const route = imageRoute();
   const key = env().GEMINI_API_KEY;
-  if (!route || route.provider !== "gemini" || !key) {
-    throw new AppError(503, "ai_not_configured", "Image generation isn't configured. Set AI_MODEL_IMAGE=gemini:<image model> and GEMINI_API_KEY.");
+  if (route.provider !== "gemini" || !key) {
+    throw new AppError(503, "ai_not_configured", "Image generation needs GEMINI_API_KEY (and optionally AI_MODEL_IMAGE=gemini:<image model>).");
   }
   try {
     const ai = new GoogleGenAI({ apiKey: key });
