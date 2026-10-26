@@ -9,7 +9,30 @@ import { badRequest, conflict, notFound } from "@/server/errors";
 import type { PreparedMedia } from "@/server/platforms/types";
 import { storage, storageKey } from "@/server/storage";
 import { assertQuota } from "@/server/usage/service";
-import { fitForInstagram, fitForLinkedIn, fitForX } from "./transform";
+import type { Platform } from "@/lib/platforms";
+import { fitAsJpeg, fitForBluesky, fitForInstagram, fitForLinkedIn, fitForX } from "./transform";
+
+/** Which normalisation each platform needs (null = upload the original). */
+async function fitImageFor(platform: Platform, src: Buffer, mime: string): Promise<{ data: Buffer; mime: string } | null> {
+  switch (platform) {
+    case "instagram":
+      return { data: await fitForInstagram(src), mime: "image/jpeg" };
+    case "linkedin":
+      return fitForLinkedIn(src, mime);
+    case "x":
+      return fitForX(src, mime);
+    case "bluesky":
+      return fitForBluesky(src, mime);
+    case "threads":
+    case "facebook":
+    case "pinterest":
+    case "telegram":
+    case "wordpress":
+      return fitAsJpeg(src, mime);
+    default:
+      return null;
+  }
+}
 import { detectAndValidate, IMAGE_TYPES, mediaMaxBytes, safeFilename, VIDEO_TYPES } from "./validate";
 
 export type MediaRow = typeof mediaAssets.$inferSelect;
@@ -121,17 +144,14 @@ export async function deleteMedia(input: { workspaceId: string; userId: string; 
  * Instagram → JPEG within size/aspect rules; LinkedIn → WebP/huge images to JPEG; X → ≤ 5 MB.
  * Derivatives are stored privately and exposed to platforms only via short-lived signed URLs.
  */
-export function prepareMedia(m: MediaRow, platform: "linkedin" | "instagram" | "x"): PreparedMedia {
+export function prepareMedia(m: MediaRow, platform: Platform): PreparedMedia {
   let derived: { key: string; mime: string; size: number } | null | undefined;
   const resolve = async () => {
     if (derived !== undefined) return derived;
     derived = null;
     if (m.kind !== "image") return derived;
     const src = await storage().get(m.storageKey);
-    let out: { data: Buffer; mime: string } | null = null;
-    if (platform === "instagram") out = { data: await fitForInstagram(src), mime: "image/jpeg" };
-    else if (platform === "linkedin") out = await fitForLinkedIn(src, m.mimeType);
-    else out = await fitForX(src, m.mimeType);
+    const out = await fitImageFor(platform, src, m.mimeType);
     if (out) {
       const key = `derived/${m.workspaceId}/${m.id}-${platform}.jpg`;
       await storage().put(key, out.data, out.mime);
@@ -139,7 +159,7 @@ export function prepareMedia(m: MediaRow, platform: "linkedin" | "instagram" | "
     }
     return derived;
   };
-  const willConvert = m.kind === "image" && (platform === "instagram" || (platform === "linkedin" && m.mimeType === "image/webp"));
+  const willConvert = m.kind === "image" && (platform === "instagram" || (m.mimeType === "image/webp" && platform !== "x" && platform !== "mastodon" && platform !== "webhook"));
   return {
     id: m.id,
     kind: m.kind,
@@ -157,4 +177,34 @@ export function prepareMedia(m: MediaRow, platform: "linkedin" | "instagram" | "
       return storage().publicUrl(d ? d.key : m.storageKey, ttl);
     },
   };
+}
+
+/** Store an AI-generated image in the media library (re-encoded, thumbnailed, quota-checked). */
+export async function saveGeneratedMedia(input: { workspaceId: string; userId: string; data: Buffer; mimeType: string; altText?: string }) {
+  const png = await sharp(input.data).png().toBuffer();
+  await assertQuota(input.workspaceId, "storage", png.length);
+  const meta = await sharp(png).metadata();
+  const key = storageKey(input.workspaceId, "media", "png");
+  const thumbnailKey = storageKey(input.workspaceId, "thumbs", "webp");
+  await storage().put(key, png, "image/png");
+  await storage().put(thumbnailKey, await sharp(png).resize({ width: 480, withoutEnlargement: true }).webp({ quality: 75 }).toBuffer(), "image/webp");
+  const [row] = await db
+    .insert(mediaAssets)
+    .values({
+      workspaceId: input.workspaceId,
+      uploadedBy: input.userId,
+      kind: "image",
+      mimeType: "image/png",
+      sizeBytes: png.length,
+      width: meta.width ?? null,
+      height: meta.height ?? null,
+      storageKey: key,
+      thumbnailKey,
+      originalFilename: `ai-image-${new Date().toISOString().slice(0, 10)}.png`,
+      sha256: sha256(png),
+      altText: input.altText?.slice(0, 1000) ?? null,
+    })
+    .returning();
+  await audit({ workspaceId: input.workspaceId, actorUserId: input.userId, action: "media.generated", targetType: "media", targetId: row!.id });
+  return serializeMedia(row!);
 }

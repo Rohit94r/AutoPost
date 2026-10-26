@@ -67,3 +67,17 @@ export async function fitForX(input: Buffer, mime: string): Promise<{ data: Buff
   if (mime === "image/gif" || input.length <= X_MAX_IMAGE_BYTES) return null;
   return { data: await jpegUnder(sharp(input).rotate().flatten({ background: "#ffffff" }).resize({ width: 4096, withoutEnlargement: true }), X_MAX_IMAGE_BYTES), mime: "image/jpeg" };
 }
+
+/** Bluesky blobs must be under 1,000,000 bytes: downscale to ≤ 2000px and recompress as JPEG. */
+export async function fitForBluesky(input: Buffer, mime: string): Promise<{ data: Buffer; mime: string } | null> {
+  if (input.length < 950_000 && mime !== "image/webp") return null;
+  const img = sharp(input).rotate().flatten({ background: "#ffffff" }).resize({ width: 2000, height: 2000, fit: "inside", withoutEnlargement: true });
+  return { data: await jpegUnder(img, 950_000), mime: "image/jpeg" };
+}
+
+/** Generic JPEG normalisation for platforms that fetch images by URL (Threads, Facebook, Pinterest). */
+export async function fitAsJpeg(input: Buffer, mime: string, maxBytes = 8 * 1024 * 1024): Promise<{ data: Buffer; mime: string } | null> {
+  if ((mime === "image/jpeg" || mime === "image/png") && input.length <= maxBytes) return null;
+  const img = sharp(input).rotate().flatten({ background: "#ffffff" }).resize({ width: 4096, height: 4096, fit: "inside", withoutEnlargement: true });
+  return { data: await jpegUnder(img, maxBytes), mime: "image/jpeg" };
+}
