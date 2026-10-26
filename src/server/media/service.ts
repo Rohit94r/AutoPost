@@ -9,6 +9,7 @@ import { badRequest, conflict, notFound } from "@/server/errors";
 import type { PreparedMedia } from "@/server/platforms/types";
 import { storage, storageKey } from "@/server/storage";
 import { assertQuota } from "@/server/usage/service";
+import { fitForInstagram, fitForLinkedIn, fitForX } from "./transform";
 import { detectAndValidate, IMAGE_TYPES, mediaMaxBytes, safeFilename, VIDEO_TYPES } from "./validate";
 
 export type MediaRow = typeof mediaAssets.$inferSelect;
@@ -116,29 +117,44 @@ export async function deleteMedia(input: { workspaceId: string; userId: string; 
 }
 
 /**
- * Build platform-ready media. Instagram accepts JPEG only, so other image formats are converted
- * to a JPEG derivative (stored privately, exposed via a short-lived signed URL).
+ * Build platform-ready media. Images are normalised per platform (see ./transform):
+ * Instagram → JPEG within size/aspect rules; LinkedIn → WebP/huge images to JPEG; X → ≤ 5 MB.
+ * Derivatives are stored privately and exposed to platforms only via short-lived signed URLs.
  */
 export function prepareMedia(m: MediaRow, platform: "linkedin" | "instagram" | "x"): PreparedMedia {
-  const needsJpeg = platform === "instagram" && m.kind === "image" && m.mimeType !== "image/jpeg";
-  let derivedKey: string | null = null;
-  const ensureJpeg = async () => {
-    if (derivedKey) return derivedKey;
+  let derived: { key: string; mime: string; size: number } | null | undefined;
+  const resolve = async () => {
+    if (derived !== undefined) return derived;
+    derived = null;
+    if (m.kind !== "image") return derived;
     const src = await storage().get(m.storageKey);
-    const jpeg = await sharp(src).rotate().flatten({ background: "#ffffff" }).jpeg({ quality: 90 }).toBuffer();
-    derivedKey = `derived/${m.workspaceId}/${m.id}.jpg`;
-    await storage().put(derivedKey, jpeg, "image/jpeg");
-    return derivedKey;
+    let out: { data: Buffer; mime: string } | null = null;
+    if (platform === "instagram") out = { data: await fitForInstagram(src), mime: "image/jpeg" };
+    else if (platform === "linkedin") out = await fitForLinkedIn(src, m.mimeType);
+    else out = await fitForX(src, m.mimeType);
+    if (out) {
+      const key = `derived/${m.workspaceId}/${m.id}-${platform}.jpg`;
+      await storage().put(key, out.data, out.mime);
+      derived = { key, mime: out.mime, size: out.data.length };
+    }
+    return derived;
   };
+  const willConvert = m.kind === "image" && (platform === "instagram" || (platform === "linkedin" && m.mimeType === "image/webp"));
   return {
     id: m.id,
     kind: m.kind,
-    mimeType: needsJpeg ? "image/jpeg" : m.mimeType,
+    mimeType: willConvert ? "image/jpeg" : m.mimeType,
     sizeBytes: m.sizeBytes,
     width: m.width,
     height: m.height,
     altText: m.altText,
-    load: async () => storage().get(needsJpeg ? await ensureJpeg() : m.storageKey),
-    publicUrl: async (ttl) => storage().publicUrl(needsJpeg ? await ensureJpeg() : m.storageKey, ttl),
+    load: async () => {
+      const d = await resolve();
+      return storage().get(d ? d.key : m.storageKey);
+    },
+    publicUrl: async (ttl) => {
+      const d = await resolve();
+      return storage().publicUrl(d ? d.key : m.storageKey, ttl);
+    },
   };
 }
