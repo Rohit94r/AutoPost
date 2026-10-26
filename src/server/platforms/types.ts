@@ -40,6 +40,12 @@ export interface PublishInput {
   account: { externalAccountId: string; accountType: string; username?: string | null; metadata: Record<string, unknown> };
   text: string;
   media: PreparedMedia[];
+  /** Post title, used where the platform needs one (YouTube, Reddit, Pinterest, WordPress). */
+  title?: string | null;
+  /** The post's link, for platforms with a dedicated link field (Pinterest, Facebook). */
+  linkUrl?: string | null;
+  /** Stable per-destination key (the publishing job id) for platforms that de-duplicate requests. */
+  idempotencyKey?: string;
   /** Hook for long operations (media processing) to report progress / respect shutdown. */
   signal?: AbortSignal;
 }
@@ -57,9 +63,69 @@ export interface MetricValue {
   note?: string;
 }
 
+/** A field the user fills in to connect a credential-based platform (Bluesky, Mastodon, …). */
+export interface CredentialField {
+  key: string;
+  label: string;
+  type: "text" | "password" | "url";
+  placeholder?: string;
+  help?: string;
+  required?: boolean;
+}
+
+/** A comment, reply or mention fetched from a platform. */
+export interface EngagementInput {
+  externalId: string;
+  kind: "comment" | "reply" | "mention";
+  postExternalId?: string | null;
+  parentExternalId?: string | null;
+  authorName?: string | null;
+  authorHandle?: string | null;
+  authorExternalId?: string | null;
+  authorAvatarUrl?: string | null;
+  text: string;
+  permalink?: string | null;
+  occurredAt: Date;
+  /** Extra identifiers needed to reply later (e.g. Bluesky uri/cid of root and parent). */
+  replyTarget?: Record<string, string>;
+  /** Written by the connected account itself (never auto-replied to). */
+  isOwn?: boolean;
+}
+
+export interface ReplyInput {
+  accessToken: string;
+  account: PublishInput["account"];
+  target: { externalId: string; postExternalId?: string | null; replyTarget: Record<string, string | undefined> };
+  text: string;
+}
+
+export interface RemotePost {
+  externalPostId: string;
+  url: string | null;
+  text: string | null;
+  thumbnailUrl?: string | null;
+  publishedAt: Date;
+}
+
+export type AccountStats = Record<string, number | null>;
+
 export interface PlatformAdapter {
   readonly platform: Platform;
   readonly usesPkce: boolean;
+  /** Credential-based platforms: fields shown in the connect form. */
+  credentialFields?(): CredentialField[];
+  /** Credential-based platforms: validate the credentials and describe the account(s). */
+  connectWithCredentials?(values: Record<string, string>): Promise<{ tokens: TokenSet; profiles: ConnectedProfile[] }>;
+  /** Comments/replies on one of the account's posts. */
+  fetchComments?(input: { accessToken: string; account: PublishInput["account"]; postExternalId: string; since?: Date | null }): Promise<EngagementInput[]>;
+  /** Mentions of the account anywhere on the platform. */
+  fetchMentions?(input: { accessToken: string; account: PublishInput["account"]; since?: Date | null }): Promise<EngagementInput[]>;
+  /** Reply to a comment or mention. Returns the platform id of the reply. */
+  reply?(input: ReplyInput): Promise<{ externalId: string; url?: string | null }>;
+  /** Recent posts on the account (including ones not published through Verdant). */
+  fetchRecentPosts?(input: { accessToken: string; account: PublishInput["account"]; limit: number }): Promise<RemotePost[]>;
+  /** Account-level numbers such as followers. */
+  fetchAccountStats?(input: { accessToken: string; account: PublishInput["account"] }): Promise<AccountStats>;
   isConfigured(): boolean;
   requestedScopes(): string[];
   /** Scopes without which publishing cannot work. */
