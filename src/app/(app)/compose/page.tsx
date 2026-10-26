@@ -71,6 +71,7 @@ export default async function ComposePage({ searchParams }: { searchParams: Prom
         aiAvailable={integrations.groq || integrations.gemini}
         startWith={documentId || start === "document" ? "document" : start === "image" ? "image" : null}
         initialDocumentId={documentId}
+        workerReady={integrations.redis}
         documents={{ maxMb: e.DOCUMENT_MAX_MB, retentionDays: ctx.workspace.documentRetentionDays, aiReady: integrations.gemini || Boolean(e.AI_MODEL_EXTRACT) }}
       />
     </>

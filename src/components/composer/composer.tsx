@@ -51,6 +51,8 @@ interface Props {
   startWith: Tool | null;
   initialDocumentId: string | null;
   documents: { maxMb: number; retentionDays: number; aiReady: boolean };
+  /** False when REDIS_URL is unset: jobs are saved but the background worker can't send them. */
+  workerReady: boolean;
 }
 
 type Mode = "now" | "schedule";
@@ -60,7 +62,7 @@ interface Critique {
   issues: { severity: string; message: string; quote?: string }[];
 }
 
-export function Composer({ initial, accounts, brands, timezone, defaultScheduleLocal, xMaxLength, aiAvailable, startWith, initialDocumentId, documents }: Props) {
+export function Composer({ initial, accounts, brands, timezone, defaultScheduleLocal, xMaxLength, aiAvailable, startWith, initialDocumentId, documents, workerReady }: Props) {
   const router = useRouter();
   const [contentId, setContentId] = useState(initial.id);
   const [title, setTitle] = useState(initial.title);
@@ -504,6 +506,11 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
 
         <GlassCard strong>
           <CardTitle description="One job per account, each tracked separately.">Publish</CardTitle>
+          {!workerReady && (
+            <Notice tone="warn" className="mb-3">
+              Publishing runs in the background worker, which needs Redis (<code>REDIS_URL</code>) and <code>pnpm worker</code>. Until then, posts are saved and queued but not sent.
+            </Notice>
+          )}
           {accounts.length === 0 ? (
             <Notice tone="warn">
               No accounts connected.{" "}
