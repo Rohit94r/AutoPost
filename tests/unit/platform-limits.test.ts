@@ -35,7 +35,8 @@ describe("platform validation", () => {
   });
   it("validates media combinations", () => {
     expect(validateMedia("x", Array(5).fill({ kind: "image", mimeType: "image/png" })).some((i) => i.code === "too_many_images")).toBe(true);
-    expect(validateMedia("linkedin", [{ kind: "image", mimeType: "image/webp" }]).some((i) => i.code === "media_format")).toBe(true);
+    expect(validateMedia("linkedin", [{ kind: "video", mimeType: "video/quicktime" }]).some((i) => i.code === "media_format")).toBe(true);
+    expect(validateMedia("linkedin", [{ kind: "image", mimeType: "image/webp" }])).toEqual([]); // converted to JPEG
     expect(validateMedia("instagram", [{ kind: "image", mimeType: "image/png" }])).toEqual([]);
   });
 });
