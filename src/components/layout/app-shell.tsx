@@ -1,25 +1,24 @@
 "use client";
 import {
   BarChart3,
-  Bot,
-  Inbox,
   Bell,
   CalendarDays,
+  ChevronDown,
   ChevronsUpDown,
-  FileScan,
   History,
+  Inbox,
   LayoutDashboard,
+  LayoutGrid,
   LifeBuoy,
-  Library,
   Link2,
   ListOrdered,
   LogOut,
   Menu,
   Palette,
   PenSquare,
+  Plus,
   Settings,
   ShieldAlert,
-  Sparkles,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -34,17 +33,14 @@ import { api } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { cn, timeAgo } from "@/lib/utils";
 
+// "Apps" (one page per connected platform) is rendered after the Create items.
 const NAV = [
   { section: "Create", items: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/compose", label: "Create post", icon: PenSquare },
-    { href: "/studio", label: "AI studio", icon: Sparkles },
-    { href: "/documents", label: "Documents", icon: FileScan },
-    { href: "/library", label: "Library", icon: Library },
   ] },
   { section: "Engage", items: [
     { href: "/inbox", label: "Inbox", icon: Inbox },
-    { href: "/autopilot", label: "Autopilot", icon: Bot },
   ] },
   { section: "Publish", items: [
     { href: "/calendar", label: "Calendar", icon: CalendarDays },
@@ -73,6 +69,8 @@ interface Props {
 export function AppShell({ user, workspace, memberships, isAdmin, channels, children }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [appsOpen, setAppsOpen] = useState(pathname.startsWith("/channels/"));
+  const totalOpen = channels.reduce((s, ch) => s + ch.open, 0);
 
   const nav = (
     <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 pb-4" aria-label="App">
@@ -94,39 +92,58 @@ export function AppShell({ user, workspace, memberships, isAdmin, channels, chil
                     )}
                   >
                     <item.icon className={cn("size-4 transition", active ? "text-moss" : "text-stone group-hover:text-mist")} />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {item.href === "/inbox" && totalOpen > 0 && <span className="rounded-full bg-dawn/90 px-1.5 text-[10px] font-semibold text-ink">{totalOpen}</span>}
                   </Link>
                 </li>
               );
             })}
+            {group.section === "Create" && (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setAppsOpen((o) => !o)}
+                  aria-expanded={appsOpen}
+                  aria-controls="nav-apps"
+                  className={cn("group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm transition", pathname.startsWith("/channels/") ? "text-white" : "text-fog hover:bg-white/6 hover:text-white")}
+                >
+                  <LayoutGrid className={cn("size-4 transition", pathname.startsWith("/channels/") ? "text-moss" : "text-stone group-hover:text-mist")} />
+                  <span className="flex-1 text-left">Apps</span>
+                  {!appsOpen && channels.length > 0 && <span className="text-[11px] text-stone">{channels.length}</span>}
+                  <ChevronDown className={cn("size-4 text-stone transition", appsOpen && "rotate-180")} />
+                </button>
+                {appsOpen && (
+                  <ul id="nav-apps" className="ml-5 mt-0.5 space-y-0.5 border-l border-white/10 pl-2">
+                    {channels.map((ch) => {
+                      const href = `/channels/${ch.platform}`;
+                      const active = pathname === href;
+                      return (
+                        <li key={ch.platform}>
+                          <Link
+                            href={href}
+                            onClick={() => setOpen(false)}
+                            aria-current={active ? "page" : undefined}
+                            className={cn("group flex items-center gap-3 rounded-xl px-3 py-1.5 text-sm transition", active ? "bg-white/12 text-white" : "text-fog hover:bg-white/6 hover:text-white")}
+                          >
+                            <PlatformIcon platform={ch.platform} className={cn("size-4", active ? "text-moss" : "text-stone group-hover:text-mist")} />
+                            <span className="flex-1 truncate">{PLATFORM_META[ch.platform].label}</span>
+                            {ch.open > 0 && <span className="rounded-full bg-dawn/90 px-1.5 text-[10px] font-semibold text-ink">{ch.open}</span>}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                    <li>
+                      <Link href="/accounts" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-1.5 text-sm text-stone transition hover:bg-white/6 hover:text-white">
+                        <Plus className="size-4" /> {channels.length ? "Connect more" : "Connect an app"}
+                      </Link>
+                    </li>
+                  </ul>
+                )}
+              </li>
+            )}
           </ul>
         </div>
       ))}
-      {channels.length > 0 && (
-        <div>
-          <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-[0.16em] text-stone">Channels</p>
-          <ul className="space-y-0.5">
-            {channels.map((ch) => {
-              const href = `/channels/${ch.platform}`;
-              const active = pathname === href;
-              return (
-                <li key={ch.platform}>
-                  <Link
-                    href={href}
-                    onClick={() => setOpen(false)}
-                    aria-current={active ? "page" : undefined}
-                    className={cn("group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition", active ? "bg-white/12 text-white" : "text-fog hover:bg-white/6 hover:text-white")}
-                  >
-                    <PlatformIcon platform={ch.platform} className={cn("size-4", active ? "text-moss" : "text-stone group-hover:text-mist")} />
-                    <span className="flex-1 truncate">{PLATFORM_META[ch.platform].label}</span>
-                    {ch.open > 0 && <span className="rounded-full bg-dawn/90 px-1.5 text-[10px] font-semibold text-ink">{ch.open}</span>}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
       {isAdmin && (
         <Link href="/admin" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-fog hover:bg-white/6 hover:text-white">
           <ShieldAlert className="size-4 text-sun" /> Admin
