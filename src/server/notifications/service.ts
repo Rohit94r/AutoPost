@@ -13,7 +13,8 @@ export type NotificationType =
   | "schedule_reminder"
   | "ai_failed"
   | "document_ready"
-  | "document_failed";
+  | "document_failed"
+  | "engagement_new";
 
 export interface NotifyInput {
   workspaceId: string;
