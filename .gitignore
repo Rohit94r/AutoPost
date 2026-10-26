@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+next-env.d.ts
+.env
+.env.local
+.env.*.local
+.env.production
+storage/
+.DS_Store
+graphify-out/
+.test-storage/
