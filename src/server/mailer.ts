@@ -9,15 +9,20 @@ interface Mail {
   html?: string;
 }
 
+export const emailConfigured = () => Boolean(env().RESEND_API_KEY);
+
 /**
  * Sends transactional email through Resend's HTTP API when RESEND_API_KEY is set.
- * In development without a key, the message (including links) is logged instead so the auth
- * flow stays testable. In production without a key, sending fails loudly.
+ * Without a key: development logs the message (including links) so auth flows stay testable;
+ * production logs an error without the link and does not block the user's request.
  */
 export async function sendMail(mail: Mail): Promise<void> {
   const e = env();
   if (!e.RESEND_API_KEY) {
-    if (e.NODE_ENV === "production") throw new Error("Email delivery is not configured (RESEND_API_KEY missing)");
+    if (e.NODE_ENV === "production") {
+      logger.error({ subject: mail.subject }, "email not sent: RESEND_API_KEY is not configured");
+      return;
+    }
     logger.warn({ to: mail.to, subject: mail.subject, body: mail.text }, "email (dev, not sent)");
     return;
   }
