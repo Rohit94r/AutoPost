@@ -1,12 +1,51 @@
 import "server-only";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { PlatformError } from "./types";
 
 /**
- * Outbound HTTP for platform APIs. Only HTTPS requests to allow-listed platform hosts are
- * permitted (SSRF defence: upload URLs returned by platforms are validated too).
+ * Outbound HTTP for platform APIs (SSRF defence):
+ * - fixed platform APIs: HTTPS + allow-listed hosts only;
+ * - user-supplied hosts (Mastodon instance, WordPress site, custom webhook, Bluesky PDS):
+ *   HTTPS only, and every resolved address must be public (no loopback/private/link-local).
+ * Redirects are never followed.
  */
-const ALLOWED_SUFFIXES = [".linkedin.com", ".licdn.com", ".instagram.com", ".facebook.com", ".x.com", ".twitter.com"];
-const ALLOWED_EXACT = new Set(["linkedin.com", "x.com", "api.x.com", "graph.instagram.com", "api.instagram.com"]);
+const ALLOWED_SUFFIXES = [
+  ".linkedin.com",
+  ".licdn.com",
+  ".instagram.com",
+  ".facebook.com",
+  ".x.com",
+  ".twitter.com",
+  ".threads.net",
+  ".threads.com",
+  ".googleapis.com",
+  ".google.com",
+  ".tiktokapis.com",
+  ".tiktok.com",
+  ".pinterest.com",
+  ".reddit.com",
+  ".bsky.social",
+  ".bsky.app",
+  ".telegram.org",
+  ".discord.com",
+  ".discordapp.com",
+];
+const ALLOWED_EXACT = new Set([
+  "linkedin.com",
+  "x.com",
+  "api.x.com",
+  "graph.instagram.com",
+  "api.instagram.com",
+  "graph.facebook.com",
+  "graph.threads.net",
+  "graph.threads.com",
+  "threads.com",
+  "threads.net",
+  "bsky.social",
+  "discord.com",
+  "api.telegram.org",
+]);
 
 export function assertAllowedUrl(raw: string) {
   let url: URL;
@@ -22,6 +61,59 @@ export function assertAllowedUrl(raw: string) {
   return url;
 }
 
+/** True for loopback, private, link-local, CGNAT, multicast and other non-public addresses. */
+export function isPrivateAddress(address: string): boolean {
+  const v = isIP(address);
+  if (v === 4) {
+    const [a, b] = address.split(".").map(Number) as [number, number];
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 192 && b === 0) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      a >= 224
+    );
+  }
+  if (v === 6) {
+    const x = address.toLowerCase();
+    if (x === "::" || x === "::1") return true;
+    if (x.startsWith("::ffff:")) return isPrivateAddress(x.slice(7));
+    return x.startsWith("fc") || x.startsWith("fd") || x.startsWith("fe8") || x.startsWith("fe9") || x.startsWith("fea") || x.startsWith("feb") || x.startsWith("ff");
+  }
+  return true;
+}
+
+type Lookup = (host: string) => Promise<{ address: string }[]>;
+let dnsLookup: Lookup = (host) => lookup(host, { all: true });
+export const setDnsLookupForTesting = (fn: Lookup | undefined) => {
+  dnsLookup = fn ?? ((host) => lookup(host, { all: true }));
+};
+
+/** Validates a user-supplied URL: HTTPS, and it must resolve only to public addresses. */
+export async function assertPublicHttpsUrl(raw: string): Promise<URL> {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new PlatformError("validation", "That URL isn't valid.");
+  }
+  if (url.protocol !== "https:") throw new PlatformError("validation", "Only https:// URLs are allowed.");
+  if (url.username || url.password) throw new PlatformError("validation", "URLs with embedded credentials aren't allowed.");
+  const host = url.hostname.replace(/^\[|\]$/g, "");
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) {
+    throw new PlatformError("validation", "Private or local addresses aren't allowed.");
+  }
+  const addresses = isIP(host) ? [{ address: host }] : await dnsLookup(host).catch(() => []);
+  if (!addresses.length) throw new PlatformError("validation", `Couldn't resolve ${host}.`);
+  if (addresses.some((a) => isPrivateAddress(a.address))) throw new PlatformError("validation", "Private or local addresses aren't allowed.");
+  return url;
+}
+
 export type FetchImpl = typeof fetch;
 let fetchImpl: FetchImpl = (...args) => fetch(...args);
 export const setPlatformFetchForTesting = (f: FetchImpl | undefined) => {
@@ -32,10 +124,13 @@ export interface CallOptions {
   timeoutMs?: number;
   /** Mark network failures as ambiguous (used for the final create-post call). */
   ambiguous?: boolean;
+  /** The host was supplied by the user: validate it resolves to a public address instead of the allow-list. */
+  userHost?: boolean;
 }
 
 export async function platformFetch(url: string, init: RequestInit, opts: CallOptions = {}): Promise<Response> {
-  assertAllowedUrl(url);
+  if (opts.userHost) await assertPublicHttpsUrl(url);
+  else assertAllowedUrl(url);
   try {
     return await fetchImpl(url, { ...init, redirect: "error", signal: init.signal ?? AbortSignal.timeout(opts.timeoutMs ?? 30_000) });
   } catch (err) {
@@ -61,8 +156,12 @@ export async function readJson(res: Response): Promise<unknown> {
 export function retryAfterFrom(res: Response, fallbackSec = 60): number {
   const ra = res.headers.get("retry-after");
   if (ra && /^\d+$/.test(ra)) return Number(ra);
-  const reset = res.headers.get("x-rate-limit-reset");
-  if (reset && /^\d+$/.test(reset)) return Math.max(1, Number(reset) - Math.floor(Date.now() / 1000));
+  const reset = res.headers.get("x-rate-limit-reset") ?? res.headers.get("x-ratelimit-reset");
+  if (reset && /^\d+(\.\d+)?$/.test(reset)) {
+    const n = Number(reset);
+    // Some APIs send an epoch timestamp, others a number of seconds until reset.
+    return Math.max(1, Math.ceil(n > 1e9 ? n - Date.now() / 1000 : n));
+  }
   return fallbackSec;
 }
 
@@ -86,3 +185,19 @@ export const sleep = (ms: number, signal?: AbortSignal) =>
 
 export const expiresAtFrom = (expiresIn: unknown) =>
   typeof expiresIn === "number" && expiresIn > 0 ? new Date(Date.now() + expiresIn * 1000) : null;
+
+/** Throws a PlatformError built from a JSON error body (generic shape used by several adapters). */
+export async function failGeneric(res: Response, label: string): Promise<never> {
+  const body = (await readJson(res)) as { error?: unknown; message?: string; error_description?: string; detail?: string; errors?: { message?: string }[] };
+  const e = body.error;
+  const msg =
+    (typeof e === "object" && e && "message" in e ? String((e as { message: unknown }).message) : typeof e === "string" ? e : undefined) ??
+    body.error_description ??
+    body.message ??
+    body.detail ??
+    body.errors?.[0]?.message ??
+    "";
+  throw errorFromStatus(res.status, msg ? `${label}: ${String(msg).slice(0, 300)}` : "", res);
+}
+
+export const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
