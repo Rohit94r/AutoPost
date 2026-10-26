@@ -23,6 +23,22 @@ Fill in `.env.local`:
 | `APP_BASE_URL` | `http://localhost:3000` locally; your public HTTPS URL in staging/production. |
 | `ADMIN_EMAILS` | Your email, to open `/admin`. |
 
+### No Docker? Use the built-in local database
+
+```bash
+pnpm db:local   # Postgres (PGlite) on 127.0.0.1:5433, data in ~/.verdant/pglite
+```
+
+Then set in `.env.local`:
+
+```
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5433/postgres
+DATABASE_POOL_SIZE=1   # PGlite serves one connection reliably
+# REDIS_URL left unset: web app works; scheduled publishing needs Redis + the worker
+```
+
+For production, use real Postgres and remove `DATABASE_POOL_SIZE`.
+
 ## 3. Database
 
 ```bash

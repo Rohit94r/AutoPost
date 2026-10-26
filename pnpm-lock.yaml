@@ -19,7 +19,7 @@ importers:
         version: 2.31.0
       better-auth:
         specifier: ^1.7.13
-        version: 1.7.13(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@electric-sql/pglite@0.5.11)(kysely@0.29.7)(postgres@3.4.9))(next@16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))
+        version: 1.7.13(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@electric-sql/pglite@0.5.12)(kysely@0.29.7)(postgres@3.4.9))(next@16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))
       bullmq:
         specifier: 5.81.5
         version: 5.81.5
@@ -37,7 +37,7 @@ importers:
         version: 3.2.0(date-fns@4.4.0)
       drizzle-orm:
         specifier: ^0.45.4
-        version: 0.45.4(@electric-sql/pglite@0.5.11)(kysely@0.29.7)(postgres@3.4.9)
+        version: 0.45.4(@electric-sql/pglite@0.5.12)(kysely@0.29.7)(postgres@3.4.9)
       file-type:
         specifier: ^22.2.0
         version: 22.2.0
@@ -88,8 +88,11 @@ importers:
         version: 4.6.7
     devDependencies:
       '@electric-sql/pglite':
-        specifier: ^0.5.11
-        version: 0.5.11
+        specifier: ^0.5.12
+        version: 0.5.12
+      '@electric-sql/pglite-socket':
+        specifier: 0.2.15
+        version: 0.2.15(@electric-sql/pglite-age@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pg_hashids@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pg_ivm@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pg_textsearch@0.0.14(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pg_uuidv7@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pgtap@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pgvector@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite@0.5.12)
       '@playwright/test':
         specifier: ^1.64.1
         version: 1.64.1
@@ -361,8 +364,56 @@ packages:
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
 
-  '@electric-sql/pglite@0.5.11':
-    resolution: {integrity: sha512-SWuqsTjA4DDWqgZ05PC1RJaq8e00p5KACxbqaikDFQ8dIGA0SLRzuPniky7IW+q/c5RDNMdEXwv7mFBWIx9Hxw==}
+  '@electric-sql/pglite-age@0.0.13':
+    resolution: {integrity: sha512-RvN0SaVfAiAaU8qxaBrviEoUoUTyb9PwbW0eOkZsY8ppPQ0CFEGzEW9mwYeL7qqfVDMaowZXN6nKYAPrOv8c+g==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pg_hashids@0.0.13':
+    resolution: {integrity: sha512-WzjBiGFAMGrZPQzPSs6g3M8fVLp6gaJZ5X2BqMaLnDlqp8a0kD5tL9C+5WXkRrcGL8/WyZG1fUkQdUOp33TqyQ==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pg_ivm@0.0.13':
+    resolution: {integrity: sha512-OSGx2EsjUlpi8cZW6fXLUK/Rs4wGqxzpTajuHEXW1iErHiZSV+aOhWwDzaZ4E+YRtPmXh9PXkbE3rZPiQO/enA==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pg_textsearch@0.0.14':
+    resolution: {integrity: sha512-fIJXQ9JUfp8CgeGUoNa7mHb0YeqxOA8DTK0vfUdGoDKFen3EIhTr5Gptevwe+1fbP8JAbTOB/ceedxwOXwNsZA==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pg_uuidv7@0.0.13':
+    resolution: {integrity: sha512-XiQ9nafO5Crzm+FhecWTD120LpbdIawUBhTRo1hxmwqvlP8Xl59UcBpCT3GHVehKIhM3Sb/OML4qVykCzp4+lg==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pgtap@0.0.13':
+    resolution: {integrity: sha512-rU2JAQ8bsRoJf2BWF+5iWif+gQyFBMBQIorATQ8a2jeWjcB8KYuBx+kLunFRwCQm7BAU/EVXNJdk9c1NR/HqGw==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pgvector@0.0.13':
+    resolution: {integrity: sha512-tTRGigSCWnrT3PdqkL69MpAyCovwpbxbPdHgqv7QKgOQZu85meXUymprvnJ/JTg361UC5GaBX1hnDfULn3bHnA==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-socket@0.2.15':
+    resolution: {integrity: sha512-jGGy7elVhY9OuxBTjqunmNyr4+BzVAYMexRRik79RGwnNYy4LO+X2MJXJOgrc9/7IL7plaWj9emx2eH7sOIhiA==}
+    hasBin: true
+    peerDependencies:
+      '@electric-sql/pglite': 0.5.12
+      '@electric-sql/pglite-age': 0.0.13
+      '@electric-sql/pglite-pg_hashids': 0.0.13
+      '@electric-sql/pglite-pg_ivm': 0.0.13
+      '@electric-sql/pglite-pg_textsearch': 0.0.14
+      '@electric-sql/pglite-pg_uuidv7': 0.0.13
+      '@electric-sql/pglite-pgtap': 0.0.13
+      '@electric-sql/pglite-pgvector': 0.0.13
+
+  '@electric-sql/pglite@0.5.12':
+    resolution: {integrity: sha512-IiAxv1ld1V9QP0AWsflliDqrGRo+20O+yXOr2fjk6YzBHsCvTPclwQhCB1uZ7eHtPrxUrSllNzWgqy/Ot76PEw==}
 
   '@emnapi/core@1.10.0':
     resolution: {integrity: sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==}
@@ -4803,12 +4854,12 @@ snapshots:
       nanostores: 1.5.5
       zod: 4.6.7
 
-  '@better-auth/drizzle-adapter@1.7.13(@better-auth/core@1.7.13(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.4(zod@4.6.7))(jose@6.2.13)(kysely@0.29.7)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(drizzle-orm@0.45.4(@electric-sql/pglite@0.5.11)(kysely@0.29.7)(postgres@3.4.9))':
+  '@better-auth/drizzle-adapter@1.7.13(@better-auth/core@1.7.13(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.4(zod@4.6.7))(jose@6.2.13)(kysely@0.29.7)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(drizzle-orm@0.45.4(@electric-sql/pglite@0.5.12)(kysely@0.29.7)(postgres@3.4.9))':
     dependencies:
       '@better-auth/core': 1.7.13(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.4(zod@4.6.7))(jose@6.2.13)(kysely@0.29.7)(nanostores@1.5.5)
       '@better-auth/utils': 0.5.1
     optionalDependencies:
-      drizzle-orm: 0.45.4(@electric-sql/pglite@0.5.11)(kysely@0.29.7)(postgres@3.4.9)
+      drizzle-orm: 0.45.4(@electric-sql/pglite@0.5.12)(kysely@0.29.7)(postgres@3.4.9)
 
   '@better-auth/kysely-adapter@1.7.13(@better-auth/core@1.7.13(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.4(zod@4.6.7))(jose@6.2.13)(kysely@0.29.7)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(kysely@0.29.7)':
     dependencies:
@@ -4848,7 +4899,46 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
-  '@electric-sql/pglite@0.5.11': {}
+  '@electric-sql/pglite-age@0.0.13(@electric-sql/pglite@0.5.12)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pg_hashids@0.0.13(@electric-sql/pglite@0.5.12)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pg_ivm@0.0.13(@electric-sql/pglite@0.5.12)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pg_textsearch@0.0.14(@electric-sql/pglite@0.5.12)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pg_uuidv7@0.0.13(@electric-sql/pglite@0.5.12)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pgtap@0.0.13(@electric-sql/pglite@0.5.12)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-pgvector@0.0.13(@electric-sql/pglite@0.5.12)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.12
+
+  '@electric-sql/pglite-socket@0.2.15(@electric-sql/pglite-age@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pg_hashids@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pg_ivm@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pg_textsearch@0.0.14(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pg_uuidv7@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pgtap@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite-pgvector@0.0.13(@electric-sql/pglite@0.5.12))(@electric-sql/pglite@0.5.12)':
+    dependencies:
+      '@electric-sql/pglite': 0.5.12
+      '@electric-sql/pglite-age': 0.0.13(@electric-sql/pglite@0.5.12)
+      '@electric-sql/pglite-pg_hashids': 0.0.13(@electric-sql/pglite@0.5.12)
+      '@electric-sql/pglite-pg_ivm': 0.0.13(@electric-sql/pglite@0.5.12)
+      '@electric-sql/pglite-pg_textsearch': 0.0.14(@electric-sql/pglite@0.5.12)
+      '@electric-sql/pglite-pg_uuidv7': 0.0.13(@electric-sql/pglite@0.5.12)
+      '@electric-sql/pglite-pgtap': 0.0.13(@electric-sql/pglite@0.5.12)
+      '@electric-sql/pglite-pgvector': 0.0.13(@electric-sql/pglite@0.5.12)
+
+  '@electric-sql/pglite@0.5.12': {}
 
   '@emnapi/core@1.10.0':
     dependencies:
@@ -6700,10 +6790,10 @@ snapshots:
 
   baseline-browser-mapping@2.11.33: {}
 
-  better-auth@1.7.13(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@electric-sql/pglite@0.5.11)(kysely@0.29.7)(postgres@3.4.9))(next@16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))):
+  better-auth@1.7.13(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@electric-sql/pglite@0.5.12)(kysely@0.29.7)(postgres@3.4.9))(next@16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@4.1.12(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))):
     dependencies:
       '@better-auth/core': 1.7.13(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.4(zod@4.6.7))(jose@6.2.13)(kysely@0.29.7)(nanostores@1.5.5)
-      '@better-auth/drizzle-adapter': 1.7.13(@better-auth/core@1.7.13(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.4(zod@4.6.7))(jose@6.2.13)(kysely@0.29.7)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(drizzle-orm@0.45.4(@electric-sql/pglite@0.5.11)(kysely@0.29.7)(postgres@3.4.9))
+      '@better-auth/drizzle-adapter': 1.7.13(@better-auth/core@1.7.13(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.4(zod@4.6.7))(jose@6.2.13)(kysely@0.29.7)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(drizzle-orm@0.45.4(@electric-sql/pglite@0.5.12)(kysely@0.29.7)(postgres@3.4.9))
       '@better-auth/kysely-adapter': 1.7.13(@better-auth/core@1.7.13(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.4(zod@4.6.7))(jose@6.2.13)(kysely@0.29.7)(nanostores@1.5.5))(@better-auth/utils@0.5.1)(kysely@0.29.7)
       '@better-auth/memory-adapter': 1.7.13(@better-auth/core@1.7.13(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.4(zod@4.6.7))(jose@6.2.13)(kysely@0.29.7)(nanostores@1.5.5))(@better-auth/utils@0.5.1)
       '@better-auth/mongo-adapter': 1.7.13(@better-auth/core@1.7.13(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.4(zod@4.6.7))(jose@6.2.13)(kysely@0.29.7)(nanostores@1.5.5))(@better-auth/utils@0.5.1)
@@ -6721,7 +6811,7 @@ snapshots:
       zod: 4.6.7
     optionalDependencies:
       drizzle-kit: 0.31.11
-      drizzle-orm: 0.45.4(@electric-sql/pglite@0.5.11)(kysely@0.29.7)(postgres@3.4.9)
+      drizzle-orm: 0.45.4(@electric-sql/pglite@0.5.12)(kysely@0.29.7)(postgres@3.4.9)
       next: 16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
@@ -6911,9 +7001,9 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.23.15
 
-  drizzle-orm@0.45.4(@electric-sql/pglite@0.5.11)(kysely@0.29.7)(postgres@3.4.9):
+  drizzle-orm@0.45.4(@electric-sql/pglite@0.5.12)(kysely@0.29.7)(postgres@3.4.9):
     optionalDependencies:
-      '@electric-sql/pglite': 0.5.11
+      '@electric-sql/pglite': 0.5.12
       kysely: 0.29.7
       postgres: 3.4.9
 

@@ -15,3 +15,4 @@ next-env.d.ts
 graphify-out/
 .test-storage/
 .playwright-mcp/
+.pglite/
