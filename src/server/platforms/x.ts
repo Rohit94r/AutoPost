@@ -1,7 +1,7 @@
 import "server-only";
 import { env } from "@/server/env";
 import { errorFromStatus, expiresAtFrom, platformFetch, readJson, retryAfterFrom, sleep } from "./http";
-import { PlatformError, type ConnectedProfile, type MetricValue, type PlatformAdapter, type PublishInput, type PublishResult, type TokenSet } from "./types";
+import { PlatformError, type AccountStats, type ConnectedProfile, type EngagementInput, type MetricValue, type PlatformAdapter, type PublishInput, type PublishResult, type RemotePost, type ReplyInput, type TokenSet } from "./types";
 
 /**
  * X adapter — OAuth 2.0 Authorization Code with PKCE + X API v2 (posts, v2 media upload).
@@ -227,4 +227,86 @@ export class XAdapter implements PlatformAdapter {
       typeof pm[key] === "number" ? { metric, value: pm[key]!, availability: "available" as const } : { metric, value: null, availability: "unsupported" as const },
     );
   }
+
+  private async getJson<T>(path: string, token: string): Promise<T> {
+    const res = await platformFetch(`${API}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) await this.fail(res);
+    return (await readJson(res)) as T;
+  }
+
+  private toItems(
+    body: { data?: { id: string; text: string; author_id?: string; created_at?: string; conversation_id?: string; in_reply_to_user_id?: string }[]; includes?: { users?: { id: string; name: string; username: string; profile_image_url?: string }[] } },
+    kind: "comment" | "mention",
+    ownId: string,
+  ): EngagementInput[] {
+    const users = new Map((body.includes?.users ?? []).map((u) => [u.id, u]));
+    return (body.data ?? []).map((t) => {
+      const u = t.author_id ? users.get(t.author_id) : undefined;
+      return {
+        externalId: t.id,
+        kind,
+        postExternalId: t.conversation_id ?? null,
+        parentExternalId: t.conversation_id ?? null,
+        authorName: u?.name ?? null,
+        authorHandle: u?.username ?? null,
+        authorExternalId: t.author_id ?? null,
+        authorAvatarUrl: u?.profile_image_url ?? null,
+        text: t.text,
+        permalink: u ? `https://x.com/${u.username}/status/${t.id}` : `https://x.com/i/web/status/${t.id}`,
+        occurredAt: t.created_at ? new Date(t.created_at) : new Date(),
+        isOwn: t.author_id === ownId,
+      };
+    });
+  }
+
+  private static readonly FIELDS = "tweet.fields=created_at,conversation_id,author_id,in_reply_to_user_id&expansions=author_id&user.fields=username,name,profile_image_url";
+
+  /** Replies in the post's conversation (search covers the last 7 days; each post read is billed). */
+  async fetchComments({ accessToken, account, postExternalId }: { accessToken: string; account: PublishInput["account"]; postExternalId: string }) {
+    const q = encodeURIComponent(`conversation_id:${postExternalId}`);
+    const body = await this.getJson<Parameters<XAdapter["toItems"]>[0]>(`/tweets/search/recent?query=${q}&max_results=50&${XAdapter.FIELDS}`, accessToken);
+    return this.toItems(body, "comment", account.externalAccountId).filter((i) => i.externalId !== postExternalId);
+  }
+
+  async fetchMentions({ accessToken, account }: { accessToken: string; account: PublishInput["account"] }) {
+    const body = await this.getJson<Parameters<XAdapter["toItems"]>[0]>(`/users/${account.externalAccountId}/mentions?max_results=50&${XAdapter.FIELDS}`, accessToken);
+    return this.toItems(body, "mention", account.externalAccountId);
+  }
+
+  /** Since Feb 2026, self-serve API replies only work when the author mentioned or quoted you. */
+  async reply({ accessToken, target, text }: ReplyInput) {
+    const res = await platformFetch(`${API}/tweets`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ text, reply: { in_reply_to_tweet_id: target.externalId } }),
+    });
+    if (res.status === 403) {
+      const b = (await readJson(res)) as { detail?: string };
+      throw new PlatformError("permission", `X only allows API replies to posts that mention or quote you. ${b.detail ?? ""}`.trim());
+    }
+    if (!res.ok) await this.fail(res);
+    const { data } = (await readJson(res)) as { data?: { id?: string } };
+    if (!data?.id) throw new PlatformError("ambiguous", "X didn't confirm the reply.");
+    return { externalId: data.id, url: `https://x.com/i/web/status/${data.id}` };
+  }
+
+  async fetchRecentPosts({ accessToken, account, limit }: { accessToken: string; account: PublishInput["account"]; limit: number }): Promise<RemotePost[]> {
+    const body = await this.getJson<{ data?: { id: string; text: string; created_at?: string }[] }>(
+      `/users/${account.externalAccountId}/tweets?max_results=${Math.max(5, Math.min(limit, 20))}&exclude=replies,retweets&tweet.fields=created_at`,
+      accessToken,
+    );
+    return (body.data ?? []).map((t) => ({
+      externalPostId: t.id,
+      url: account.username ? `https://x.com/${account.username}/status/${t.id}` : null,
+      text: t.text,
+      publishedAt: t.created_at ? new Date(t.created_at) : new Date(),
+    }));
+  }
+
+  async fetchAccountStats({ accessToken }: { accessToken: string; account: PublishInput["account"] }): Promise<AccountStats> {
+    const body = await this.getJson<{ data?: { public_metrics?: { followers_count?: number; following_count?: number; tweet_count?: number } } }>("/users/me?user.fields=public_metrics", accessToken);
+    const m = body.data?.public_metrics;
+    return { followers: m?.followers_count ?? null, following: m?.following_count ?? null, posts: m?.tweet_count ?? null };
+  }
+
 }

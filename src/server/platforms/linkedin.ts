@@ -1,7 +1,7 @@
 import "server-only";
 import { env } from "@/server/env";
 import { errorFromStatus, expiresAtFrom, platformFetch, readJson, sleep } from "./http";
-import { PlatformError, type ConnectedProfile, type MetricValue, type PlatformAdapter, type PublishInput, type PublishResult, type TokenSet } from "./types";
+import { PlatformError, type ConnectedProfile, type EngagementInput, type MetricValue, type PlatformAdapter, type PublishInput, type PublishResult, type ReplyInput, type TokenSet } from "./types";
 
 /**
  * LinkedIn adapter — Sign In with LinkedIn (OIDC) + Share on LinkedIn (Posts API, versioned REST).
@@ -292,4 +292,51 @@ export class LinkedInAdapter implements PlatformAdapter {
     }
     return out;
   }
+
+  /**
+   * Comments via the Comments API (socialActions). Requires Community Management API access and
+   * works for organization pages; reading member-post comments is restricted by LinkedIn.
+   */
+  async fetchComments({ accessToken, account, postExternalId }: { accessToken: string; account: PublishInput["account"]; postExternalId: string }): Promise<EngagementInput[]> {
+    if (account.accountType !== "organization") return [];
+    const res = await platformFetch(`${API}/rest/socialActions/${encodeURIComponent(postExternalId)}/comments?count=50`, { headers: this.headers(accessToken) });
+    if (!res.ok) await this.fail(res);
+    const body = (await readJson(res)) as {
+      elements?: { id?: string; commentUrn?: string; actor?: string; message?: { text?: string }; created?: { time?: number }; parentComment?: string }[];
+    };
+    return (body.elements ?? [])
+      .filter((c) => c.commentUrn)
+      .map((c) => ({
+        externalId: c.commentUrn!,
+        kind: c.parentComment ? ("reply" as const) : ("comment" as const),
+        postExternalId,
+        parentExternalId: c.parentComment ?? postExternalId,
+        authorName: c.actor?.startsWith("urn:li:organization:") ? "Your page" : "LinkedIn member",
+        authorExternalId: c.actor ?? null,
+        text: c.message?.text ?? "",
+        permalink: linkedinPostUrl(postExternalId),
+        occurredAt: c.created?.time ? new Date(c.created.time) : new Date(),
+        replyTarget: { postUrn: postExternalId },
+        isOwn: c.actor === account.externalAccountId,
+      }));
+  }
+
+  async reply({ accessToken, account, target, text }: ReplyInput) {
+    if (account.accountType !== "organization") throw new PlatformError("permission", "LinkedIn only allows API comments as an organization page (Community Management API).");
+    const postUrn = target.replyTarget.postUrn ?? target.postExternalId ?? "";
+    const res = await platformFetch(
+      `${API}/rest/socialActions/${encodeURIComponent(target.externalId)}/comments`,
+      {
+        method: "POST",
+        headers: this.headers(accessToken, { "Content-Type": "application/json" }),
+        body: JSON.stringify({ actor: account.externalAccountId, object: postUrn, message: { text: toLittleText(text) }, parentComment: target.externalId }),
+      },
+      { ambiguous: true },
+    );
+    if (!res.ok) await this.fail(res);
+    const id = res.headers.get("x-restli-id") ?? ((await readJson(res)) as { commentUrn?: string }).commentUrn;
+    if (!id) throw new PlatformError("ambiguous", "LinkedIn didn't confirm the reply.");
+    return { externalId: id };
+  }
+
 }

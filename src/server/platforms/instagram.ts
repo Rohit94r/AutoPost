@@ -1,7 +1,7 @@
 import "server-only";
 import { env } from "@/server/env";
 import { errorFromStatus, expiresAtFrom, platformFetch, readJson, sleep } from "./http";
-import { PlatformError, type ConnectedProfile, type MetricValue, type PlatformAdapter, type PublishInput, type PublishResult, type TokenSet } from "./types";
+import { PlatformError, type AccountStats, type ConnectedProfile, type EngagementInput, type MetricValue, type PlatformAdapter, type PublishInput, type PublishResult, type RemotePost, type ReplyInput, type TokenSet } from "./types";
 
 /**
  * Instagram adapter — Instagram API with Instagram Login (professional accounts only).
@@ -33,8 +33,13 @@ export class InstagramAdapter implements PlatformAdapter {
   }
 
   requestedScopes() {
-    const base = ["instagram_business_basic", "instagram_business_content_publish"];
-    return env().INSTAGRAM_REQUEST_INSIGHTS ? [...base, "instagram_business_manage_insights"] : base;
+    const e = env();
+    return [
+      "instagram_business_basic",
+      "instagram_business_content_publish",
+      ...(e.INSTAGRAM_REQUEST_COMMENTS ? ["instagram_business_manage_comments"] : []),
+      ...(e.INSTAGRAM_REQUEST_INSIGHTS ? ["instagram_business_manage_insights"] : []),
+    ];
   }
 
   requiredPublishScopes() {
@@ -262,4 +267,76 @@ export class InstagramAdapter implements PlatformAdapter {
     }
     return out;
   }
+
+  async fetchComments({ accessToken, account, postExternalId }: { accessToken: string; account: PublishInput["account"]; postExternalId: string }): Promise<EngagementInput[]> {
+    interface C {
+      id: string;
+      text?: string;
+      timestamp?: string;
+      username?: string;
+      from?: { id?: string; username?: string };
+      replies?: { data?: C[] };
+    }
+    const res = await platformFetch(
+      `${this.base}/${postExternalId}/comments?fields=id,text,timestamp,username,from,replies{id,text,timestamp,username,from}&limit=50`,
+      { headers: this.auth(accessToken) },
+    );
+    if (!res.ok) await this.fail(res);
+    const body = (await readJson(res)) as { data?: C[] };
+    const own = account.username;
+    const toItem = (c: C, kind: "comment" | "reply", parent: string): EngagementInput => ({
+      externalId: c.id,
+      kind,
+      postExternalId,
+      parentExternalId: parent,
+      authorName: c.username ?? c.from?.username ?? null,
+      authorHandle: c.username ?? c.from?.username ?? null,
+      authorExternalId: c.from?.id ?? null,
+      text: c.text ?? "",
+      permalink: null,
+      occurredAt: c.timestamp ? new Date(c.timestamp) : new Date(),
+      // Instagram replies attach to the top-level comment.
+      replyTarget: { topCommentId: kind === "reply" ? parent : c.id },
+      isOwn: Boolean(own && (c.username ?? c.from?.username) === own),
+    });
+    return (body.data ?? []).flatMap((c) => [toItem(c, "comment", postExternalId), ...(c.replies?.data ?? []).map((r) => toItem(r, "reply", c.id))]);
+  }
+
+  async reply({ accessToken, target, text }: ReplyInput) {
+    const commentId = target.replyTarget.topCommentId ?? target.externalId;
+    const res = await platformFetch(`${this.base}/${commentId}/replies`, {
+      method: "POST",
+      headers: { ...this.auth(accessToken), "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ message: text }),
+    });
+    if (!res.ok) await this.fail(res);
+    const { id } = (await readJson(res)) as { id?: string };
+    if (!id) throw new PlatformError("ambiguous", "Instagram didn't confirm the reply.");
+    return { externalId: id };
+  }
+
+  async fetchRecentPosts({ accessToken, account, limit }: { accessToken: string; account: PublishInput["account"]; limit: number }): Promise<RemotePost[]> {
+    const res = await platformFetch(
+      `${this.base}/${account.externalAccountId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=${Math.min(limit, 50)}`,
+      { headers: this.auth(accessToken) },
+    );
+    if (!res.ok) await this.fail(res);
+    const body = (await readJson(res)) as { data?: { id: string; caption?: string; media_type?: string; media_url?: string; thumbnail_url?: string; permalink?: string; timestamp?: string }[] };
+    return (body.data ?? []).map((m) => ({
+      externalPostId: m.id,
+      url: m.permalink ?? null,
+      text: m.caption ?? null,
+      thumbnailUrl: m.media_type === "VIDEO" ? (m.thumbnail_url ?? null) : (m.media_url ?? null),
+      publishedAt: m.timestamp ? new Date(m.timestamp) : new Date(),
+    }));
+  }
+
+  async fetchAccountStats({ accessToken }: { accessToken: string; account: PublishInput["account"] }): Promise<AccountStats> {
+    const res = await platformFetch(`${this.base}/me?fields=followers_count,follows_count,media_count`, { headers: this.auth(accessToken) });
+    if (!res.ok) await this.fail(res);
+    const raw = (await readJson(res)) as Record<string, unknown> & { data?: Record<string, unknown>[] };
+    const me = (raw.data?.[0] ?? raw) as { followers_count?: number; follows_count?: number; media_count?: number };
+    return { followers: me.followers_count ?? null, following: me.follows_count ?? null, posts: me.media_count ?? null };
+  }
+
 }
