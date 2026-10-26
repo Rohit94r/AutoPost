@@ -23,6 +23,20 @@ Fill in `.env.local`:
 | `APP_BASE_URL` | `http://localhost:3000` locally; your public HTTPS URL in staging/production. |
 | `ADMIN_EMAILS` | Your email, to open `/admin`. |
 
+### Neon (hosted Postgres, recommended)
+
+1. In the Neon console open your project → **Connect**. Copy the connection string twice: once with **Connection pooling** on, once with it off.
+2. In `.env.local` (or your host's environment):
+
+```
+DATABASE_URL=postgresql://…@ep-xxxx-pooler.<region>.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+DATABASE_URL_UNPOOLED=postgresql://…@ep-xxxx.<region>.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+```
+
+3. Remove `DATABASE_POOL_SIZE` (it's only for the local PGlite database), then run `pnpm db:migrate` and `pnpm db:seed`.
+
+Paste the strings exactly as Neon shows them. The app removes client-only options such as `channel_binding` before connecting (the Postgres driver would otherwise send them to the server, which rejects them), verifies Neon's TLS certificate, and turns off prepared statements on the pooled endpoint. Migrations use the direct URL. A Neon compute that scaled to zero wakes on the first query, which can take a few seconds.
+
 ### No Docker? Use the built-in local database
 
 ```bash
