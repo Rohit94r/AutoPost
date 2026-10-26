@@ -12,6 +12,7 @@ import { api, errorMessage } from "@/lib/api-client";
 import { wordDiff } from "@/lib/diff";
 import { composeFinalText, PLATFORM_META, PLATFORMS, type Platform, type ValidationIssue } from "@/lib/platforms";
 import { cn } from "@/lib/utils";
+import { ImageLab } from "./image-lab";
 import { LENGTHS, REWRITE_LABEL, REWRITE_OPS, TONES, TONE_LABEL } from "@/lib/writing";
 
 interface Variant {
@@ -27,6 +28,7 @@ export function Studio({ brands, aiAvailable }: { brands: { id: string; name: st
       <TabsList className="mb-4">
         <TabsTrigger value="generate">Generate</TabsTrigger>
         <TabsTrigger value="rewrite">Rewrite lab</TabsTrigger>
+        <TabsTrigger value="image">Images</TabsTrigger>
       </TabsList>
       {!aiAvailable && <Notice tone="warn" className="mb-4" title="AI is not configured">Add GROQ_API_KEY and/or GEMINI_API_KEY on the server to use the studio.</Notice>}
       <TabsContent value="generate">
@@ -34,6 +36,9 @@ export function Studio({ brands, aiAvailable }: { brands: { id: string; name: st
       </TabsContent>
       <TabsContent value="rewrite">
         <RewriteLab brands={brands} disabled={!aiAvailable} />
+      </TabsContent>
+      <TabsContent value="image">
+        <ImageLab disabled={!aiAvailable} />
       </TabsContent>
     </Tabs>
   );
