@@ -40,9 +40,10 @@ const SENTIMENT: Record<string, string> = {
   spam: "text-stone",
 };
 
-export function Inbox({ platforms, initialPlatform, initialPostId }: { platforms: Platform[]; initialPlatform?: Platform; initialPostId?: string }) {
+/** `fixedPlatform` scopes the inbox to one app (used on that app's page) and hides the platform filter. */
+export function Inbox({ platforms, initialPlatform, initialPostId, fixedPlatform }: { platforms: Platform[]; initialPlatform?: Platform; initialPostId?: string; fixedPlatform?: Platform }) {
   const [status, setStatus] = useState("open");
-  const [platform, setPlatform] = useState<Platform | "">(initialPlatform ?? "");
+  const [platform, setPlatform] = useState<Platform | "">(fixedPlatform ?? initialPlatform ?? "");
   const [kind, setKind] = useState("");
   const [items, setItems] = useState<Item[] | null>(null);
   const [active, setActive] = useState<Item | null>(null);
@@ -82,7 +83,7 @@ export function Inbox({ platforms, initialPlatform, initialPostId }: { platforms
   async function syncNow() {
     setSyncing(true);
     try {
-      const r = await api<{ newItems: number; results: { error?: string }[] }>("/engagement/sync", { method: "POST" });
+      const r = await api<{ newItems: number; results: { error?: string }[] }>(`/engagement/sync${fixedPlatform ? `?platform=${fixedPlatform}` : ""}`, { method: "POST" });
       const errors = r.results.filter((x) => x.error);
       toast.success(r.newItems ? `${r.newItems} new comment${r.newItems === 1 ? "" : "s"}` : "You're up to date");
       if (errors.length) toast.message(errors.map((e) => e.error).join(" · "));
@@ -109,15 +110,17 @@ export function Inbox({ platforms, initialPlatform, initialPostId }: { platforms
             </button>
           ))}
         </nav>
-        <Select aria-label="Platform" className="w-44" value={platform} onChange={(e) => setPlatform(e.target.value as Platform | "")}>
-          <option value="">All platforms</option>
-          {platforms.map((p) => (
-            <option key={p} value={p}>
-              {PLATFORM_META[p].label}
-            </option>
-          ))}
-        </Select>
-        <Select aria-label="Type" className="w-36" value={kind} onChange={(e) => setKind(e.target.value)}>
+        {!fixedPlatform && (
+          <Select aria-label="Platform" className="w-44" value={platform} onChange={(e) => setPlatform(e.target.value as Platform | "")}>
+            <option value="">All platforms</option>
+            {platforms.map((p) => (
+              <option key={p} value={p}>
+                {PLATFORM_META[p].label}
+              </option>
+            ))}
+          </Select>
+        )}
+        <Select aria-label="Type" className="w-48" value={kind} onChange={(e) => setKind(e.target.value)}>
           <option value="">Comments & mentions</option>
           <option value="comment">Comments</option>
           <option value="reply">Thread replies</option>
@@ -302,7 +305,7 @@ function ReplyPanel({ item, onDone }: { item: Item; onDone: () => void }) {
         </Button>
       )}
       <p className="mt-4 text-xs text-stone">
-        Set up automatic replies in <Link href="/autopilot" className="text-moss hover:underline">Autopilot</Link>.
+        Set up automatic replies in <Link href="/inbox?tab=autopilot" className="text-moss hover:underline">Inbox → Autopilot</Link>.
       </p>
     </GlassCard>
   );
