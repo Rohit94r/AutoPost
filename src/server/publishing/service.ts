@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, count, desc, eq, gte, inArray, isNull, lte, or, type SQL } from "drizzle-orm";
 import { z } from "zod";
-import { composeFinalText, PLATFORMS, validateMedia, validateText, type ValidationIssue } from "@/lib/platforms";
+import { finalPostText, PLATFORMS, validateMedia, validateText, type ValidationIssue } from "@/lib/platforms";
 import { zonedLocalToUtc } from "@/lib/time";
 import { audit } from "@/server/audit";
 import { refreshContentStatus } from "@/server/content/service";
@@ -38,6 +38,21 @@ function resolveSchedule(input: z.infer<typeof createJobsInput>, now: Date) {
   return at;
 }
 
+/**
+ * Instagram downloads media itself, so the URL we hand it must be public HTTPS.
+ * With S3 storage we use presigned URLs; with local storage the app's own domain must be public.
+ */
+export function publicMediaProblem(): string | null {
+  const e = env();
+  if (e.STORAGE_DRIVER === "s3") return null;
+  const url = new URL(e.APP_BASE_URL);
+  const privateHost = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.0\.0\.0|\[?::1\]?)/.test(url.hostname) || url.hostname.endsWith(".local");
+  if (url.protocol !== "https:" || privateHost) {
+    return "Instagram can't download media from this server. Set APP_BASE_URL to your public HTTPS domain, or use STORAGE_DRIVER=s3.";
+  }
+  return null;
+}
+
 /** Validate every destination before creating anything (all-or-nothing). */
 export async function preflight(workspaceId: string, contentId: string, accountIds: string[]) {
   const [content] = await db.select().from(contentItems).where(and(eq(contentItems.id, contentId), eq(contentItems.workspaceId, workspaceId)));
@@ -72,8 +87,10 @@ export async function preflight(workspaceId: string, contentId: string, accountI
       issues.push({ level: "error", code: "no_variant", message: `There is no ${account.platform} version of this post.` });
     } else {
       const m = variant.includeMedia ? media : [];
-      const text = composeFinalText(variant.body, variant.hashtags);
+      const text = finalPostText(account.platform, variant.body, variant.hashtags, content.linkUrl);
       issues.push(...validateText(account.platform, text, { mediaCount: m.length, xMaxLength: env().X_MAX_POST_LENGTH }), ...validateMedia(account.platform, m));
+      const reach = account.platform === "instagram" && m.length ? publicMediaProblem() : null;
+      if (reach) issues.push({ level: "error", code: "media_not_public", message: reach });
     }
     const errors = issues.filter((i) => i.level === "error");
     if (errors.length) problems.push({ accountId: account.id, platform: account.platform, issues: errors });
