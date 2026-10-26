@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { and, eq, gt, inArray, isNull, lt } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lt, sql } from "drizzle-orm";
 import type { Platform } from "@/lib/platforms";
 import { audit } from "@/server/audit";
 import { decrypt, encrypt, randomToken, sha256 } from "@/server/crypto";
@@ -137,55 +137,92 @@ async function loadCredentials(accountId: string, conn: DbOrTx = db) {
   return { accessToken: decrypt(cred.accessTokenEnc), refreshToken: cred.refreshTokenEnc ? decrypt(cred.refreshTokenEnc) : null };
 }
 
-/** Refresh tokens for one account (when supported) and persist them encrypted. */
-export async function refreshAccount(account: AccountRow) {
+/**
+ * Refresh tokens for one account (when supported) and persist them encrypted.
+ * Serialised per account with a Postgres advisory lock: X rotates refresh tokens, so two workers
+ * refreshing concurrently would invalidate each other. Inside the lock we re-read the account and
+ * skip the refresh if another process already did it.
+ *
+ * `minValidMs`: skip when the current token is still valid for at least this long.
+ */
+export async function refreshAccount(account: AccountRow, opts: { minValidMs?: number } = {}): Promise<boolean> {
   const adapter = getAdapter(account.platform);
-  const creds = await loadCredentials(account.id);
-  if (!creds) throw new PlatformError("auth", "No stored credentials. Reconnect the account.");
-  if (!adapter.canRefresh({ ...creds, tokenExpiresAt: account.tokenExpiresAt, lastRefreshedAt: account.lastRefreshedAt, createdAt: account.createdAt })) {
-    return false;
-  }
-  try {
-    const t = await adapter.refresh(creds);
-    await db.transaction(async (tx) => {
-      await tx
-        .update(oauthCredentials)
-        .set({ accessTokenEnc: encrypt(t.accessToken), refreshTokenEnc: t.refreshToken ? encrypt(t.refreshToken) : creds.refreshToken ? encrypt(creds.refreshToken) : null })
-        .where(eq(oauthCredentials.socialAccountId, account.id));
-      await tx
-        .update(socialAccounts)
-        .set({
-          tokenExpiresAt: t.expiresAt ?? account.tokenExpiresAt,
-          refreshTokenExpiresAt: t.refreshTokenExpiresAt ?? account.refreshTokenExpiresAt,
-          grantedScopes: t.scopes.length ? t.scopes : account.grantedScopes,
-          lastRefreshedAt: new Date(),
-          status: account.status === "expired" ? "connected" : account.status,
-          lastError: null,
-        })
-        .where(eq(socialAccounts.id, account.id));
-    });
-    return true;
-  } catch (err) {
-    if (err instanceof PlatformError && err.kind === "auth") {
-      await markAccount(account.id, "expired", err.message);
+  let refreshError: unknown;
+  const result = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`oauth-refresh:${account.id}`}))`);
+    const [fresh] = await tx.select().from(socialAccounts).where(eq(socialAccounts.id, account.id));
+    if (!fresh || fresh.status === "disconnected") throw new PlatformError("auth", "This account was disconnected.");
+    if (opts.minValidMs && fresh.tokenExpiresAt && fresh.tokenExpiresAt.getTime() > Date.now() + opts.minValidMs) {
+      return true; // already refreshed by someone else
     }
-    throw err;
+    const creds = await loadCredentials(account.id, tx);
+    if (!creds) throw new PlatformError("auth", "No stored credentials. Reconnect the account.");
+    if (!adapter.canRefresh({ ...creds, tokenExpiresAt: fresh.tokenExpiresAt, lastRefreshedAt: fresh.lastRefreshedAt, createdAt: fresh.createdAt })) {
+      return false;
+    }
+    let t: TokenSet;
+    try {
+      t = await adapter.refresh(creds);
+    } catch (err) {
+      refreshError = err; // handled after the transaction so the bookkeeping isn't rolled back
+      return false;
+    }
+    await tx
+      .update(oauthCredentials)
+      .set({ accessTokenEnc: encrypt(t.accessToken), refreshTokenEnc: t.refreshToken ? encrypt(t.refreshToken) : creds.refreshToken ? encrypt(creds.refreshToken) : null })
+      .where(eq(oauthCredentials.socialAccountId, account.id));
+    await tx
+      .update(socialAccounts)
+      .set({
+        tokenExpiresAt: t.expiresAt ?? fresh.tokenExpiresAt,
+        refreshTokenExpiresAt: t.refreshTokenExpiresAt ?? fresh.refreshTokenExpiresAt,
+        grantedScopes: t.scopes.length ? t.scopes : fresh.grantedScopes,
+        lastRefreshedAt: new Date(),
+        status: fresh.status === "expired" ? "connected" : fresh.status,
+        lastError: null,
+      })
+      .where(eq(socialAccounts.id, account.id));
+    return true;
+  });
+
+  if (refreshError) {
+    if (refreshError instanceof PlatformError && refreshError.kind === "auth") {
+      // The platform rejected the refresh token: the user must reconnect. Park pending posts.
+      await markAccount(account.id, "expired", refreshError.message);
+      await db
+        .update(publishingJobs)
+        .set({ status: "needs_reconnection", lastErrorCode: "auth", lastErrorMessage: refreshError.message })
+        .where(and(eq(publishingJobs.socialAccountId, account.id), inArray(publishingJobs.status, ["queued", "scheduled"])));
+    }
+    throw refreshError;
   }
+  return result;
 }
 
 export async function markAccount(accountId: string, status: AccountRow["status"], error: string | null, conn: DbOrTx = db) {
   await conn.update(socialAccounts).set({ status, lastError: error }).where(eq(socialAccounts.id, accountId));
 }
 
-/** Returns a usable access token, refreshing first when it expires within 5 minutes. */
+const REFRESH_WINDOW_MS = 5 * 60_000;
+
+/**
+ * Returns a usable access token, refreshing first when it expires within 5 minutes.
+ * - refresh rejected by the platform → account expired, auth error (job waits for reconnection)
+ * - refresh failed for a transient reason → transient error (job retries later; account untouched)
+ * - token expired and the platform can't refresh (e.g. LinkedIn) → account expired, auth error
+ */
 export async function getAccessToken(account: AccountRow): Promise<string> {
   if (account.status === "disconnected") throw new PlatformError("auth", "This account was disconnected.");
-  const soon = Date.now() + 5 * 60_000;
-  if (account.tokenExpiresAt && account.tokenExpiresAt.getTime() < soon) {
-    const refreshed = await refreshAccount(account).catch((err) => {
-      logger.warn({ err, accountId: account.id }, "token refresh failed");
-      return false;
-    });
+  if (account.tokenExpiresAt && account.tokenExpiresAt.getTime() < Date.now() + REFRESH_WINDOW_MS) {
+    let refreshed: boolean;
+    try {
+      refreshed = await refreshAccount(account, { minValidMs: REFRESH_WINDOW_MS });
+    } catch (err) {
+      if (err instanceof PlatformError && err.kind === "auth") throw err;
+      logger.warn({ err, accountId: account.id }, "token refresh failed (transient)");
+      if (account.tokenExpiresAt.getTime() > Date.now()) refreshed = true; // still valid for a few minutes
+      else throw new PlatformError("transient", `Couldn't refresh the ${account.platform} connection right now. Will retry.`);
+    }
     if (!refreshed && account.tokenExpiresAt.getTime() < Date.now()) {
       await markAccount(account.id, "expired", "Access token expired");
       throw new PlatformError("auth", `Your ${account.platform} connection expired. Reconnect the account.`);
