@@ -59,6 +59,7 @@ export function BrandEditor({ brands, aiAvailable }: { brands: Brand[]; aiAvaila
   const [form, setForm] = useState<Omit<Brand, "id">>(current ?? blank());
   const [busy, setBusy] = useState<string | null>(null);
   const [newSample, setNewSample] = useState("");
+  const [about, setAbout] = useState("");
   const set = <K extends keyof Brand>(k: K, v: Brand[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   const select = (id: string | "new") => {
@@ -80,6 +81,19 @@ export function BrandEditor({ brands, aiAvailable }: { brands: Brand[]; aiAvaila
       } else await api(`/brand-profiles/${selectedId}`, { method: "PATCH", json: body() });
       toast.success("Brand voice saved");
       router.refresh();
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function autofill() {
+    setBusy("autofill");
+    try {
+      const r = await api<{ profile: Partial<Brand> }>("/ai/brand-autofill", { method: "POST", json: { description: about } });
+      setForm((f) => ({ ...f, ...Object.fromEntries(Object.entries(r.profile).filter(([, v]) => v !== "" && !(Array.isArray(v) && !v.length))) }));
+      toast.success("Filled in. Review the fields, then save.");
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -132,6 +146,15 @@ export function BrandEditor({ brands, aiAvailable }: { brands: Brand[]; aiAvaila
       </GlassCard>
 
       <div className="space-y-4">
+        <GlassCard>
+          <CardTitle icon={<Sparkles />} description="Describe yourself or your brand in plain words. AI fills in the profile; you review it before saving.">
+            Fill with AI
+          </CardTitle>
+          <Textarea rows={3} value={about} onChange={(e) => setAbout(e.target.value)} placeholder="I run a small vegan bakery in Pune. Friendly, a bit playful, we post about new bakes and workshops for local families." aria-label="Describe your brand" />
+          <Button className="mt-3" variant="glass" onClick={autofill} loading={busy === "autofill"} disabled={!aiAvailable || about.trim().length < 10}>
+            <Sparkles /> Fill the profile
+          </Button>
+        </GlassCard>
         <GlassCard>
           <CardTitle
             action={
