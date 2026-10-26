@@ -1,6 +1,8 @@
 "use client";
 import {
   BarChart3,
+  Bot,
+  Inbox,
   Bell,
   CalendarDays,
   ChevronsUpDown,
@@ -25,6 +27,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { DropdownMenu as DM, Popover } from "radix-ui";
 import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/brand";
+import { PlatformIcon } from "@/components/ui/platform";
+import { PLATFORM_META, type Platform } from "@/lib/platforms";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
@@ -37,6 +41,10 @@ const NAV = [
     { href: "/studio", label: "AI studio", icon: Sparkles },
     { href: "/documents", label: "Documents", icon: FileScan },
     { href: "/library", label: "Library", icon: Library },
+  ] },
+  { section: "Engage", items: [
+    { href: "/inbox", label: "Inbox", icon: Inbox },
+    { href: "/autopilot", label: "Autopilot", icon: Bot },
   ] },
   { section: "Publish", items: [
     { href: "/calendar", label: "Calendar", icon: CalendarDays },
@@ -57,10 +65,12 @@ interface Props {
   workspace: { id: string; name: string; plan: string; role: string };
   memberships: { id: string; name: string; role: string }[];
   isAdmin: boolean;
+  /** Connected platforms with the number of comments waiting. */
+  channels: { platform: Platform; open: number }[];
   children: React.ReactNode;
 }
 
-export function AppShell({ user, workspace, memberships, isAdmin, children }: Props) {
+export function AppShell({ user, workspace, memberships, isAdmin, channels, children }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -92,6 +102,31 @@ export function AppShell({ user, workspace, memberships, isAdmin, children }: Pr
           </ul>
         </div>
       ))}
+      {channels.length > 0 && (
+        <div>
+          <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-[0.16em] text-stone">Channels</p>
+          <ul className="space-y-0.5">
+            {channels.map((ch) => {
+              const href = `/channels/${ch.platform}`;
+              const active = pathname === href;
+              return (
+                <li key={ch.platform}>
+                  <Link
+                    href={href}
+                    onClick={() => setOpen(false)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn("group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition", active ? "bg-white/12 text-white" : "text-fog hover:bg-white/6 hover:text-white")}
+                  >
+                    <PlatformIcon platform={ch.platform} className={cn("size-4", active ? "text-moss" : "text-stone group-hover:text-mist")} />
+                    <span className="flex-1 truncate">{PLATFORM_META[ch.platform].label}</span>
+                    {ch.open > 0 && <span className="rounded-full bg-dawn/90 px-1.5 text-[10px] font-semibold text-ink">{ch.open}</span>}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
       {isAdmin && (
         <Link href="/admin" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-fog hover:bg-white/6 hover:text-white">
           <ShieldAlert className="size-4 text-sun" /> Admin
