@@ -14,3 +14,4 @@ next-env.d.ts
 .DS_Store
 graphify-out/
 .test-storage/
+.playwright-mcp/
