@@ -24,7 +24,12 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const days = RANGES.includes(Number(sp.days)) ? Number(sp.days) : 30;
   const to = new Date();
   const from = new Date(to.getTime() - days * 86400_000);
-  const [pub, platforms] = await Promise.all([publishingSummary(ctx.workspace.id, from, to), platformMetrics(ctx.workspace.id, from, to)]);
+  const [pub, allPlatforms] = await Promise.all([publishingSummary(ctx.workspace.id, from, to), platformMetrics(ctx.workspace.id, from, to)]);
+  // Only show platforms with activity in this range.
+  const platforms = allPlatforms.filter((p) => {
+    const b = pub.byPlatform.find((x) => x.platform === p.platform);
+    return p.posts > 0 || Boolean(b && (b.published || b.failed || b.scheduled || b.cancelled));
+  });
   const series = Object.values(
     pub.series.reduce<Record<string, { day: string; n: number }>>((acc, r) => {
       acc[r.day] = { day: r.day, n: (acc[r.day]?.n ?? 0) + r.n };
@@ -62,6 +67,11 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         <PublishedChart series={series} days={days} end={to.toISOString()} />
       </GlassCard>
 
+      {platforms.length === 0 && (
+        <GlassCard className="mt-4">
+          <p className="text-sm text-fog">No platform activity in this period yet. Publish or connect accounts to see per-platform analytics.</p>
+        </GlassCard>
+      )}
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         {platforms.map((p) => {
           const pp = pub.byPlatform.find((b) => b.platform === p.platform)!;
