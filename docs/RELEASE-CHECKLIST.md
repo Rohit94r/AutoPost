@@ -29,6 +29,9 @@
 | 8 Analytics | ✅ calculation tests · 🟡 live metric collection | `lib/analytics.ts`, `analytics/service.ts` |
 | 9 Hardening | ✅ CSP/headers, rate limits, SSRF guard, upload validation, audit log, CI workflow | `SECURITY.md`, `.github/workflows/ci.yml` |
 | 10 Release docs | ✅ | `docs/*` |
+| + 12 more platforms | ✅ adapters + mocked tests (Bluesky, Mastodon, SSRF) · ⏳ developer apps / approvals | `platforms/*`, `PLATFORMS.md` |
+| + Engagement inbox & autopilot | ✅ integration tests (sync, replies, autopilot safety) · 🟡 live accounts | `engagement/*`, `ENGAGEMENT.md` |
+| + Legal & Meta callbacks | ✅ signed-request tests · ⏳ lawyer review of Terms/Privacy | `/terms`, `/privacy`, `/data-deletion` |
 
 ## Production launch checklist
 
@@ -50,6 +53,10 @@
 ## Known limitations
 
 - Instagram carousels and Stories are not implemented.
+- TikTok, Pinterest, Telegram and Discord have no comment API, so they aren't in the inbox.
+- LinkedIn comments and replies work only for organization pages with Community Management API access.
+- X engagement is opt-in (billed reads), and API replies only work on posts that mention or quote the account.
+- Reddit needs Reddit's approval before any API use; commercial use needs an agreement.
 - LinkedIn organization posting is behind a flag and needs Community Management API approval.
 - Video duration/thumbnail probing (ffprobe) is not implemented; platforms validate video server-side.
 - No payment provider. Plans are enforced, upgrades are manual.

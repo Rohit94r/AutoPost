@@ -2,7 +2,7 @@
 
 > **Create once → Understand the source → Generate → Customize per platform → Review → Publish or schedule → Track results.**
 
-Verdant is a SaaS workspace where creators, student communities, founders, freelancers, marketing teams and agencies can turn an idea **or an uploaded document** (certificate, internship letter, event poster, competition result, project summary…) into accurate, natural posts — then adapt, preview, publish and schedule them to **LinkedIn, Instagram and X** through each platform's official API.
+Verdant is a SaaS workspace where creators, student communities, founders, freelancers, marketing teams and agencies can turn an idea **or an uploaded document** (certificate, internship letter, event poster, competition result, project summary…) into accurate, natural posts, then adapt, preview, publish and schedule them to **15 platforms** (LinkedIn, Instagram, X, Facebook Pages, Threads, YouTube, TikTok, Pinterest, Reddit, Bluesky, Mastodon, Telegram, Discord, WordPress and any custom website) through official APIs. Every comment and mention then lands in **one inbox**, where you reply by hand or let **Autopilot** answer in your voice.
 
 It is built as a real product, not a UI demo: PostgreSQL persistence, server-side sessions, encrypted OAuth credentials, Groq + Gemini AI adapters, document extraction with human review, a durable Redis/BullMQ publishing engine with idempotency and partial-success handling, honest analytics, quotas, audit logs and deployment docs.
 
@@ -26,7 +26,7 @@ It is built as a real product, not a UI demo: PostgreSQL persistence, server-sid
 14. [Build stages & status](#build-stages--status)
 15. [Known limitations](#known-limitations)
 
-Detailed docs live in [`docs/`](docs/):
+Detailed docs live in [`docs/`](docs/), including [Engagement](docs/ENGAGEMENT.md):
 [Stage 0 audit](docs/STAGE-0-AUDIT.md) · [Platform API notes](docs/PLATFORM-API-NOTES.md) · [Architecture](docs/ARCHITECTURE.md) · [Setup](docs/SETUP.md) · [Platforms](docs/PLATFORMS.md) · [Deployment](docs/DEPLOYMENT.md) · [Security](docs/SECURITY.md) · [API](docs/API.md) · [Release checklist](docs/RELEASE-CHECKLIST.md)
 
 ---
@@ -43,6 +43,9 @@ Detailed docs live in [`docs/`](docs/):
 | **Document intelligence** | Upload PDF/image → validate (MIME + magic bytes) → text extraction / Gemini OCR → document-type-aware fact extraction with confidence & evidence → **user review & correction** → content directions → platform drafts. |
 | **Media** | Validated uploads, image metadata + thumbnails, reuse, deletion, per-platform media validation, signed public URLs for platforms that fetch media (Instagram). |
 | **Publishing engine** | One job per destination account. Durable in Postgres, executed by a persistent BullMQ worker. Idempotency keys, atomic claims, bounded exponential backoff, permanent-error detection, reconnection states, partial success, cancellation. |
+| **Engagement inbox** | Comments, replies and mentions from every supporting platform, linked to the post they're on. Reply from the web and it posts on the platform; AI-suggested replies. |
+| **Autopilot** | Rules (all / questions / keywords / mentions) that draft or auto-post replies in your brand voice, with daily caps and safety: spam and abuse are never answered, negatives go to review. |
+| **Channels** | One page per connected platform: followers, posts (including imported ones), live metrics and comment counts. |
 | **Calendar & queue** | Month / week / agenda views, filters, drag-and-drop rescheduling, edit & cancel. |
 | **History & recovery** | Every attempt recorded with understandable errors; retry only failed destinations. |
 | **Analytics** | Publishing analytics from our own data + platform metrics only where the API and granted scopes allow. Missing/unsupported metrics are labelled, never invented. |

@@ -56,3 +56,17 @@ Items marked *unverified* were not confirmed in official docs; the code treats t
 - `generateContent` is labelled legacy but fully supported; structured output via `responseMimeType: "application/json"` + `responseJsonSchema`.
 - Inline data ≤ 100 MB per request (PDF ≤ 50 MB, ≤ 1000 pages).
 - Usage: `usageMetadata.promptTokenCount`, `candidatesTokenCount`, `thoughtsTokenCount` (billed), `totalTokenCount`.
+
+## Second verification round (2026-10-26): new platforms
+
+- **Facebook Pages**: Graph `v26.0`; `/me/accounts` page tokens (non-expiring from long-lived user tokens). `/feed`, `/photos` (url), `graph-video…/videos` (file_url). Comments `GET /{post}/comments`, reply `POST /{comment}/comments`. **`post_impressions` removed 2025-11-15**, so use `post_media_view`.
+- **Threads**: base `graph.threads.com/v1.0`; authorize `threads.com/oauth/authorize`; long-lived `th_exchange_token`, refresh `th_refresh_token`. Containers → `threads_publish`; replies via `reply_to_id`; `/conversation` for all replies; `/mentions` needs `threads_manage_mentions`. 500 chars; 250 posts / 1000 replies per day.
+- **Instagram comments**: `instagram_business_manage_comments`; `GET /{media}/comments`, reply `POST /{comment}/replies`. Mentions only via webhooks under Instagram Login.
+- **YouTube**: resumable `videos.insert` now uses its own "Video Uploads" quota bucket (default 100/day); unverified projects are **no longer** forced to private (per current docs; test it). `comments.insert` = 50 units.
+- **TikTok** (docs geoblocked; from official snippets): Direct Post `/v2/post/publish/video/init/` (FILE_UPLOAD or verified PULL_FROM_URL), `creator_info` privacy options, status fetch. Unaudited apps: SELF_ONLY. No comments API for Login Kit apps.
+- **Pinterest v5**: continuous refresh tokens (60 days each, rotate). `POST /v5/pins` with `media_source.image_url`. Trial Pins are sandboxed.
+- **Reddit**: approval required for new apps (Responsible Builder Policy); descriptive User-Agent mandatory; `/api/submit`, `/api/comment`, `/message/mentions`.
+- **Bluesky**: `createSession` (app password), `createRecord`, facets with UTF-8 byte offsets, images ≤ 2,000,000 bytes (we keep < 950 KB), 300 graphemes.
+- **X engagement**: since **2026-02-23** self-serve API replies only work when the original author mentioned or quoted you. Mentions `GET /2/users/:id/mentions`; conversation search covers 7 days. Reads are billed.
+- **LinkedIn comments**: `/rest/socialActions/{urn}/comments` (Community Management API); member post reading is restricted.
+- **Gemini images**: Imagen is shut down. Use `gemini-3.1-flash-image` (or `gemini-3-pro-image`) with `generateContent` + `responseModalities: ["IMAGE"]`.

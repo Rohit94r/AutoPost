@@ -80,6 +80,35 @@ Base path: `/api/v1`. All endpoints require a session cookie (from `/api/auth/*`
 | POST | `/social-accounts/:id/refresh` | where supported |
 | DELETE | `/social-accounts/:id` | disconnect + revoke where supported |
 
+### Engagement
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/engagement` | inbox: `status(open|new|needs_review|replied|ignored|all), platform, accountId, postId, kind, q, page` + counts |
+| PATCH | `/engagement/:id` | `{ status: new|needs_review|ignored }` |
+| POST | `/engagement/:id/suggest` | AI draft + sentiment (nothing posted) |
+| POST | `/engagement/:id/reply` | `{ text }` → posted on the platform now |
+| POST | `/engagement/sync` | sync posts/comments/mentions for every connected account |
+| GET / POST | `/autopilot/rules` | list / create (admin) |
+| PATCH / DELETE | `/autopilot/rules/:id` | update / delete (admin) |
+
+### More AI
+| Method | Path | Body |
+|---|---|---|
+| POST | `/ai/brand-autofill` | `{ description }` → brand voice fields (not saved) |
+| POST | `/ai/image` | `{ text?, prompt?, style?, platform?, aspectRatio?, generate? }` → prompt + alt text; with `generate` saves an image to the media library |
+
+### Social accounts (credential platforms)
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/social-accounts/:platform/credentials` | `{ values }` for bluesky, mastodon, telegram, discord, wordpress, webhook |
+| PATCH | `/social-accounts/:id/settings` | `{ subreddit?, boardId?, privacy?, tiktokPrivacy? }` |
+
+### Webhooks (called by platforms)
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/webhooks/meta/deauthorize` | Meta `signed_request` (HMAC-verified) |
+| POST | `/api/webhooks/meta/data-deletion` | returns `{ url, confirmation_code }` |
+
 ### Publishing
 | Method | Path | Notes |
 |---|---|---|
