@@ -1,21 +1,46 @@
-import { ArrowRight, BadgeCheck, CalendarClock, FileScan, Fingerprint, Layers3, RefreshCcw, ShieldCheck, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, BadgeCheck, Bot, ChevronRight, Fingerprint, Inbox, KeyRound, Lock, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Logo } from "@/components/brand";
+import { Highlights } from "@/components/landing/highlights";
+import { Reveal } from "@/components/landing/reveal";
+import { Story } from "@/components/landing/story";
 import { Button } from "@/components/ui/button";
 import { PlatformIcon } from "@/components/ui/platform";
+import { PLATFORM_META, PLATFORMS } from "@/lib/platforms";
 import { PLANS } from "@/lib/plans";
 import { formatBytes } from "@/lib/utils";
 
 export default function Landing() {
   return (
-    <div className="relative overflow-x-clip">
+    <div className="relative overflow-x-clip bg-ink">
       <Nav />
       <Hero />
-      <Proof />
-      <HowItWorks />
-      <DocumentFeature />
-      <Reliability />
+      <section className="py-24" aria-labelledby="highlights">
+        <div className="mx-auto mb-10 max-w-6xl px-5">
+          <h2 id="highlights" className="font-display text-5xl text-white md:text-6xl">
+            Get the highlights.
+          </h2>
+        </div>
+        <Highlights />
+      </section>
+
+      <section id="story" className="relative bg-[radial-gradient(ellipse_at_75%_35%,rgba(74,222,128,0.10),transparent_55%),radial-gradient(ellipse_at_15%_70%,rgba(252,213,154,0.07),transparent_50%)] py-16" aria-labelledby="story-title">
+        <Reveal className="mx-auto max-w-4xl px-5 text-center">
+          <p className="text-sm font-medium text-moss">A story in six moments</p>
+          <h2 id="story-title" className="mt-3 font-display text-5xl leading-[1.05] text-white md:text-7xl">
+            From “I did a thing” to <span className="text-gradient">everyone knowing.</span>
+          </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-fog">Here&apos;s what Verdant does, told as one afternoon in one person&apos;s life.</p>
+        </Reveal>
+        <div className="mt-10">
+          <Story />
+        </div>
+      </section>
+
+      <Platforms />
+      <Bento />
+      <Privacy />
       <Pricing />
       <FinalCta />
       <Footer />
@@ -25,26 +50,27 @@ export default function Landing() {
 
 function Nav() {
   return (
-    <header className="fixed inset-x-0 top-3 z-40 px-3 sm:top-5">
-      <nav className="glass mx-auto flex h-14 max-w-6xl items-center justify-between rounded-2xl! px-3 pl-4" aria-label="Main">
-        <Logo />
-        <div className="hidden items-center gap-1 text-sm text-fog md:flex">
+    <header className="fixed inset-x-0 top-0 z-40 border-b border-white/8 bg-ink/60 backdrop-blur-xl backdrop-saturate-150">
+      <nav className="mx-auto flex h-12 max-w-6xl items-center justify-between px-5 text-[13px]" aria-label="Main">
+        <Logo className="[&_span]:text-xl [&_svg]:size-6" />
+        <div className="hidden items-center gap-7 text-fog md:flex">
           {[
-            ["#how", "How it works"],
-            ["#documents", "Documents"],
-            ["#reliability", "Reliability"],
+            ["#story", "How it works"],
+            ["#platforms", "Platforms"],
+            ["#features", "Features"],
+            ["#privacy", "Privacy"],
             ["#pricing", "Pricing"],
           ].map(([href, label]) => (
-            <a key={href} href={href} className="rounded-lg px-3 py-1.5 transition hover:bg-white/10 hover:text-white">
+            <a key={href} href={href} className="transition hover:text-white">
               {label}
             </a>
           ))}
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-            <Link href="/sign-in">Sign in</Link>
-          </Button>
-          <Button asChild variant="light" size="sm">
+        <div className="flex items-center gap-4">
+          <Link href="/sign-in" className="text-fog hover:text-white">
+            Sign in
+          </Link>
+          <Button asChild size="sm" className="h-7 rounded-full px-3.5">
             <Link href="/sign-up">Get started</Link>
           </Button>
         </div>
@@ -55,228 +81,152 @@ function Nav() {
 
 function Hero() {
   return (
-    <section className="relative isolate flex min-h-[100svh] items-center pb-24 pt-32">
-      <Image src="/images/hero-peaks.webp" alt="" fill priority sizes="100vw" className="-z-20 object-cover object-center" />
-      <div className="absolute inset-0 -z-10 bg-linear-to-b from-black/45 via-black/25 to-ink" />
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,rgba(252,213,154,0.18),transparent_55%)]" />
-
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-14 px-5 lg:grid-cols-[1.05fr_1fr]">
-        <div className="animate-rise">
-          <span className="glass inline-flex items-center gap-2 rounded-full! px-3 py-1.5 text-xs text-mist">
-            <Sparkles className="size-3.5 text-sun" /> AI writing with Groq &amp; Gemini · Official platform APIs
+    <section className="relative isolate flex min-h-[100svh] flex-col items-center justify-start overflow-hidden px-5 pt-32 text-center">
+      <Image src="/images/hero-peaks.webp" alt="" fill priority sizes="100vw" className="-z-20 object-cover object-bottom" />
+      <div className="absolute inset-0 -z-10 bg-linear-to-b from-ink/80 via-ink/20 to-ink" />
+      <p className="animate-rise text-lg font-medium text-sun">Verdant</p>
+      <h1 className="mt-3 max-w-5xl animate-rise font-display text-[3.6rem] leading-[0.95] tracking-tight text-white [animation-delay:120ms] sm:text-8xl lg:text-[8.5rem]">
+        Say it once.
+        <br />
+        <span className="text-gradient">Be heard everywhere.</span>
+      </h1>
+      <p className="mt-7 max-w-2xl animate-rise text-xl leading-relaxed text-mist/90 [animation-delay:240ms] md:text-2xl">
+        Turn an idea or a certificate into posts for 15 platforms, in your voice. Then answer every comment from one inbox.
+      </p>
+      <div className="mt-8 flex animate-rise flex-wrap items-center justify-center gap-x-8 gap-y-3 text-lg [animation-delay:360ms]">
+        <Button asChild size="lg" className="rounded-full px-7">
+          <Link href="/sign-up">Start free</Link>
+        </Button>
+        <a href="#story" className="inline-flex items-center gap-1 text-moss hover:underline">
+          See how it works <ChevronRight className="size-5" />
+        </a>
+      </div>
+      <div className="mt-14 flex animate-rise flex-wrap items-center justify-center gap-2 [animation-delay:480ms]">
+        {PLATFORMS.map((p) => (
+          <span key={p} className="glass grid size-10 place-items-center rounded-full! text-white" title={PLATFORM_META[p].label}>
+            <PlatformIcon platform={p} className="size-4" />
           </span>
-          <h1 className="mt-6 font-display text-[3.4rem] leading-[0.98] text-white sm:text-7xl lg:text-[5.4rem]">
-            Create once.
-            <br />
-            <em className="text-gradient not-italic">Publish everywhere.</em>
-          </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-mist/85">
-            Drop in an idea, a certificate or an event poster. Verdant pulls out the facts, lets you check them, and writes natural posts for LinkedIn, Instagram
-            and X that you can edit, schedule and publish in one place.
-          </p>
-          <div className="mt-9 flex flex-wrap items-center gap-3">
-            <Button asChild size="lg">
-              <Link href="/sign-up">
-                Start for free <ArrowRight />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="glass">
-              <a href="#how">See how it works</a>
-            </Button>
-          </div>
-          <div className="mt-10 flex items-center gap-4 text-sm text-fog">
-            <div className="flex -space-x-2">
-              {(["linkedin", "instagram", "x"] as const).map((p) => (
-                <span key={p} className="glass grid size-9 place-items-center rounded-full! text-white">
-                  <PlatformIcon platform={p} />
-                </span>
-              ))}
-            </div>
-            We never ask for your social passwords. Accounts connect through each platform&apos;s own OAuth.
-          </div>
-        </div>
-
-        <HeroMock />
+        ))}
       </div>
     </section>
   );
 }
 
-function HeroMock() {
+function Platforms() {
   return (
-    <div className="relative mx-auto w-full max-w-md lg:max-w-none" aria-hidden>
-      <div className="glass-strong animate-rise p-5 [animation-delay:150ms]">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-white">
-            <Wand2 className="size-4 text-moss" /> Composer
-          </div>
-          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-fog">Illustration</span>
-        </div>
-        <div className="glass-input p-3 text-sm leading-relaxed text-mist/90">
-          Finished the Google Data Analytics certificate. 8 courses, capstone on bike-share retention.
-        </div>
-        <div className="mt-4 space-y-2.5">
-          {[
-            { p: "linkedin" as const, t: "Eight courses, one capstone, and a much better feel for messy data. I just completed the Google Data Analytics certificate…" },
-            { p: "instagram" as const, t: "Certificate unlocked ✦ 8 courses + a capstone on bike-share retention. Swipe for what I learned →" },
-            { p: "x" as const, t: "Done: Google Data Analytics cert. Capstone = why bike-share riders churn. Writeup soon." },
-          ].map((v, i) => (
-            <div key={v.p} className="flex gap-3 rounded-xl bg-black/25 p-3 animate-rise" style={{ animationDelay: `${300 + i * 120}ms` }}>
-              <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-white/10 text-white">
-                <PlatformIcon platform={v.p} className="size-3.5" />
-              </span>
-              <p className="text-[13px] leading-snug text-mist/85">{v.t}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 flex items-center justify-between rounded-xl bg-moss/10 px-3 py-2 text-xs text-moss">
-          <span className="inline-flex items-center gap-1.5">
-            <CalendarClock className="size-3.5" /> Scheduled · Tue 09:30 IST
-          </span>
-          <span>3 destinations</span>
-        </div>
-      </div>
-      <div className="glass absolute -left-6 -top-8 hidden animate-float items-center gap-2 rounded-2xl! px-3 py-2 text-xs text-mist sm:flex">
-        <FileScan className="size-4 text-sun" /> 7 facts extracted from certificate.pdf
-      </div>
-      <div className="glass absolute -bottom-7 -right-4 hidden animate-float items-center gap-2 rounded-2xl! px-3 py-2 text-xs text-mist [animation-delay:1.5s] sm:flex">
-        <BadgeCheck className="size-4 text-moss" /> You reviewed every fact
-      </div>
-    </div>
-  );
-}
-
-function Proof() {
-  return (
-    <section className="relative border-y border-white/8 bg-ink py-8">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-5 text-sm text-fog">
-        <span className="inline-flex items-center gap-2">
-          <PlatformIcon platform="linkedin" /> LinkedIn Posts API
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <PlatformIcon platform="instagram" /> Instagram Graph API
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <PlatformIcon platform="x" /> X API v2
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <Sparkles className="size-4" /> Groq · Gemini
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <ShieldCheck className="size-4" /> AES-256 encrypted tokens
-        </span>
-      </div>
-    </section>
-  );
-}
-
-const STEPS = [
-  { icon: Layers3, title: "Start anywhere", text: "A rough idea, a draft, or a document: PDF, certificate, poster, internship letter." },
-  { icon: FileScan, title: "Understand the source", text: "Text extraction and Gemini vision pull structured facts, with evidence and confidence." },
-  { icon: BadgeCheck, title: "You check the facts", text: "Correct anything before writing. Nothing unverified slips into your post." },
-  { icon: Wand2, title: "Write per platform", text: "Separate LinkedIn, Instagram and X versions in your brand voice, each fully editable." },
-  { icon: CalendarClock, title: "Publish or schedule", text: "One job per destination, tracked independently, with history and safe retries." },
-];
-
-function HowItWorks() {
-  return (
-    <section id="how" className="relative isolate py-28">
-      <Image src="/images/feature-lake.webp" alt="" fill sizes="100vw" className="-z-20 object-cover opacity-55" />
-      <div className="absolute inset-0 -z-10 bg-linear-to-b from-ink via-ink/55 to-ink" />
+    <section id="platforms" className="relative isolate py-28">
+      <Image src="/images/feature-lake.webp" alt="" fill sizes="100vw" className="-z-20 object-cover opacity-40" />
+      <div className="absolute inset-0 -z-10 bg-linear-to-b from-ink via-ink/70 to-ink" />
       <div className="mx-auto max-w-6xl px-5">
-        <SectionHead eyebrow="How it works" title={<>From source to post, <em className="text-gradient not-italic">without the busywork.</em></>} />
-        <ol className="mt-14 grid gap-4 md:grid-cols-5">
-          {STEPS.map((s, i) => (
-            <li key={s.title} className="glass group p-5 transition hover:-translate-y-1 hover:bg-white/[0.11]">
-              <div className="flex items-center justify-between">
-                <span className="grid size-10 place-items-center rounded-xl bg-white/10 text-moss transition group-hover:scale-110">
-                  <s.icon className="size-5" />
+        <Reveal className="text-center">
+          <h2 className="font-display text-5xl text-white md:text-7xl">Every platform. One place.</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-fog">Official sign-in for each network. Each post is shaped for its platform: length, tone, hashtags and format.</p>
+        </Reveal>
+        <ul className="mt-14 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {PLATFORMS.map((p, i) => (
+            <Reveal key={p} as="li" delay={i * 40}>
+              <div className="glass flex h-full flex-col items-start gap-3 p-5 transition hover:-translate-y-1 hover:bg-white/[0.11]">
+                <span className="grid size-11 place-items-center rounded-2xl text-white" style={{ backgroundColor: `${PLATFORM_META[p].color}33`, boxShadow: `inset 0 0 0 1px ${PLATFORM_META[p].color}55` }}>
+                  <PlatformIcon platform={p} className="size-5" />
                 </span>
-                <span className="font-display text-3xl text-white/25">0{i + 1}</span>
+                <span className="font-medium text-white">{PLATFORM_META[p].label}</span>
+                <span className="text-xs text-stone">
+                  {[PLATFORM_META[p].can.publish && "Publish", PLATFORM_META[p].can.comments === "read_reply" && "Replies", PLATFORM_META[p].can.metrics && "Analytics"].filter(Boolean).join(" · ")}
+                </span>
               </div>
-              <h3 className="mt-5 font-semibold text-white">{s.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-fog">{s.text}</p>
-            </li>
+            </Reveal>
           ))}
-        </ol>
+        </ul>
       </div>
     </section>
   );
 }
 
-function DocumentFeature() {
-  const fields = [
-    ["Recipient", "Aarav Mehta", "high"],
-    ["Certificate", "Google Data Analytics", "high"],
-    ["Issuer", "Google · Coursera", "high"],
-    ["Issue date", "12 Sep 2026", "medium"],
-    ["Credential ID", "—  not found", "missing"],
-  ];
+function Bento() {
   return (
-    <section id="documents" className="relative py-28">
-      <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 lg:grid-cols-2">
-        <div>
-          <SectionHead align="left" eyebrow="Document intelligence" title={<>Your certificate, <em className="text-gradient not-italic">read carefully.</em></>} />
-          <ul className="mt-8 space-y-4 text-[15px] text-mist/85">
-            {[
-              "PDF text extraction first, Gemini OCR for scans and images",
-              "Document-type-aware fields: no forced, irrelevant boxes",
-              "Confidence, evidence snippets and page references",
-              "Facts from the document are kept separate from claims you add",
-              "Embedded instructions inside documents are ignored",
-              "We never claim a certificate is authentic just because we read it",
-            ].map((t) => (
-              <li key={t} className="flex gap-3">
-                <BadgeCheck className="mt-0.5 size-5 shrink-0 text-moss" /> {t}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="glass-strong p-6" aria-hidden>
-          <div className="mb-4 flex items-center justify-between text-sm">
-            <span className="text-white">certificate.pdf · Certificate</span>
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-fog">Illustration</span>
-          </div>
-          <div className="space-y-2">
-            {fields.map(([k, v, c]) => (
-              <div key={k} className="flex items-center justify-between rounded-xl bg-black/25 px-3.5 py-2.5 text-sm">
-                <span className="text-fog">{k}</span>
-                <span className="flex items-center gap-2 text-white">
-                  {v}
-                  <span className={`size-2 rounded-full ${c === "high" ? "bg-moss" : c === "medium" ? "bg-sun" : "bg-dawn"}`} />
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-xs text-stone">Green = clearly printed · Amber = check this · Red = missing, so it stays out of the post</p>
+    <section id="features" className="py-28">
+      <div className="mx-auto max-w-6xl px-5">
+        <Reveal>
+          <h2 className="font-display text-5xl text-white md:text-7xl">
+            Built for the busy part
+            <br />
+            <span className="text-gradient">of your day.</span>
+          </h2>
+        </Reveal>
+        <div className="mt-14 grid gap-4 md:grid-cols-6">
+          <Reveal className="md:col-span-4">
+            <div className="relative isolate h-full min-h-80 overflow-hidden rounded-[2rem] p-8">
+              <Image src="/images/golden-valley.webp" alt="" fill sizes="(max-width: 768px) 100vw, 66vw" className="-z-20 object-cover" />
+              <div className="absolute inset-0 -z-10 bg-linear-to-r from-black/80 via-black/50 to-transparent" />
+              <Inbox className="size-8 text-sun" />
+              <h3 className="mt-6 max-w-md font-display text-4xl text-white">One inbox for every comment and mention.</h3>
+              <p className="mt-3 max-w-md text-mist/85">Instagram, Facebook, YouTube, Threads, Reddit, Bluesky and more. See which post each comment is on, reply right there, and it goes out on the platform.</p>
+            </div>
+          </Reveal>
+          <Reveal className="md:col-span-2" delay={80}>
+            <div className="glass h-full p-8">
+              <Bot className="size-8 text-moss" />
+              <h3 className="mt-6 font-display text-3xl text-white">Autopilot that knows when to stop.</h3>
+              <p className="mt-3 text-fog">It thanks fans and answers simple questions in your voice. Spam is ignored, and anything negative waits for you.</p>
+            </div>
+          </Reveal>
+          <Reveal className="md:col-span-2">
+            <div className="glass h-full p-8">
+              <BadgeCheck className="size-8 text-sun" />
+              <h3 className="mt-6 font-display text-3xl text-white">Facts first.</h3>
+              <p className="mt-3 text-fog">Upload a certificate, letter or poster. Check what was read. Only confirmed facts make it into your post.</p>
+            </div>
+          </Reveal>
+          <Reveal className="md:col-span-2" delay={80}>
+            <div className="glass h-full p-8">
+              <Sparkles className="size-8 text-moss" />
+              <h3 className="mt-6 font-display text-3xl text-white">Sounds like you.</h3>
+              <p className="mt-3 text-fog">Brand voice learned from your own posts. One tap to make a draft sound more natural and more human.</p>
+            </div>
+          </Reveal>
+          <Reveal className="md:col-span-2" delay={160}>
+            <div className="glass h-full p-8">
+              <Fingerprint className="size-8 text-sun" />
+              <h3 className="mt-6 font-display text-3xl text-white">Never posts twice.</h3>
+              <p className="mt-3 text-fog">Each platform gets its own job. A failure on one never reposts on another, and a post is only marked done when the platform confirms it.</p>
+            </div>
+          </Reveal>
         </div>
       </div>
     </section>
   );
 }
 
-function Reliability() {
-  const items = [
-    { icon: Fingerprint, title: "Idempotent by design", text: "Double-clicks and retried requests can't create duplicate posts." },
-    { icon: RefreshCcw, title: "Partial success, handled", text: "If Instagram fails but LinkedIn succeeds, only Instagram is retried." },
-    { icon: CalendarClock, title: "Survives restarts", text: "Schedules live in Postgres; a persistent worker recovers anything due." },
-    { icon: ShieldCheck, title: "Honest results", text: "Marked published only after the platform returns a post ID. No fake analytics." },
+function Privacy() {
+  const points = [
+    { icon: KeyRound, title: "No passwords. Ever.", text: "Accounts connect through each platform's own sign-in or official app tokens." },
+    { icon: Lock, title: "Encrypted tokens.", text: "Connection tokens are encrypted on the server (AES-256-GCM) and never sent to your browser." },
+    { icon: ShieldCheck, title: "Your content stays yours.", text: "No ads, no selling data, no training AI on your posts or documents." },
+    { icon: Trash2, title: "Delete means delete.", text: "Documents expire automatically. Export or erase everything whenever you like." },
   ];
   return (
-    <section id="reliability" className="relative isolate py-28">
-      <Image src="/images/golden-valley.webp" alt="" fill sizes="100vw" className="-z-20 object-cover opacity-45" />
+    <section id="privacy" className="relative isolate py-32">
+      <Image src="/images/auth-hills.webp" alt="" fill sizes="100vw" className="-z-20 object-cover opacity-50" />
       <div className="absolute inset-0 -z-10 bg-linear-to-b from-ink via-ink/60 to-ink" />
       <div className="mx-auto max-w-6xl px-5">
-        <SectionHead eyebrow="Publishing engine" title={<>Built to be trusted <em className="text-gradient not-italic">with your name.</em></>} />
+        <Reveal className="text-center">
+          <Lock className="mx-auto size-12 text-white" />
+          <h2 className="mt-6 font-display text-5xl text-white md:text-7xl">Privacy, built in.</h2>
+        </Reveal>
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {items.map((i) => (
-            <div key={i.title} className="glass p-6">
-              <i.icon className="size-6 text-sun" />
-              <h3 className="mt-4 font-semibold text-white">{i.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-fog">{i.text}</p>
-            </div>
+          {points.map((p, i) => (
+            <Reveal key={p.title} delay={i * 80}>
+              <div className="glass h-full p-6">
+                <p.icon className="size-6 text-moss" />
+                <h3 className="mt-4 font-semibold text-white">{p.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-fog">{p.text}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
+        <p className="mt-8 text-center text-sm text-stone">
+          Read the <Link href="/privacy" className="text-moss underline">Privacy Policy</Link> and <Link href="/terms" className="text-moss underline">Terms</Link>.
+        </p>
       </div>
     </section>
   );
@@ -286,24 +236,29 @@ function Pricing() {
   return (
     <section id="pricing" className="py-28">
       <div className="mx-auto max-w-6xl px-5">
-        <SectionHead eyebrow="Plans" title={<>Simple limits, <em className="text-gradient not-italic">enforced fairly.</em></>} />
-        <p className="mx-auto mt-4 max-w-xl text-center text-sm text-fog">Online checkout isn&apos;t live yet. Every workspace starts on Free, and admins can upgrade plans.</p>
-        <div className="mt-12 grid gap-4 md:grid-cols-3">
-          {Object.entries(PLANS).map(([id, p]) => (
-            <div key={id} className={`p-7 ${id === "pro" ? "glass-strong ring-1 ring-moss/40" : "glass"}`}>
-              <h3 className="font-display text-3xl text-white">{p.name}</h3>
-              <p className="mt-1 text-sm text-fog">{p.description}</p>
-              <ul className="mt-6 space-y-2.5 text-sm text-mist/90">
-                <li>{p.limits.aiRequestsPerMonth.toLocaleString()} AI requests / month</li>
-                <li>{p.limits.documentsPerMonth} documents / month</li>
-                <li>{p.limits.publishingJobsPerMonth.toLocaleString()} publishes / month</li>
-                <li>{p.limits.connectedAccounts} connected accounts</li>
-                <li>{formatBytes(p.limits.storageBytes)} storage</li>
-                <li>
-                  {p.limits.members} member{p.limits.members > 1 ? "s" : ""}
-                </li>
-              </ul>
-            </div>
+        <Reveal className="text-center">
+          <h2 className="font-display text-5xl text-white md:text-7xl">Which plan is right for you?</h2>
+          <p className="mx-auto mt-4 max-w-xl text-fog">Every workspace starts free. Online checkout is coming; until then, admins upgrade plans.</p>
+        </Reveal>
+        <div className="mt-14 grid gap-4 md:grid-cols-3">
+          {Object.entries(PLANS).map(([id, p], i) => (
+            <Reveal key={id} delay={i * 80}>
+              <div className={`h-full p-8 text-center ${id === "pro" ? "glass-strong ring-1 ring-moss/40" : "glass"}`}>
+                {id === "pro" && <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-moss">Most popular</p>}
+                <h3 className="font-display text-4xl text-white">{p.name}</h3>
+                <p className="mt-2 text-sm text-fog">{p.description}</p>
+                <ul className="mt-6 space-y-3 border-t border-white/10 pt-6 text-sm text-mist/90">
+                  <li>{p.limits.connectedAccounts} connected accounts</li>
+                  <li>{p.limits.publishingJobsPerMonth.toLocaleString()} posts a month</li>
+                  <li>{p.limits.aiRequestsPerMonth.toLocaleString()} AI requests a month</li>
+                  <li>{p.limits.documentsPerMonth} documents a month</li>
+                  <li>{formatBytes(p.limits.storageBytes)} storage</li>
+                  <li>
+                    {p.limits.members} team member{p.limits.members > 1 ? "s" : ""}
+                  </li>
+                </ul>
+              </div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -314,13 +269,13 @@ function Pricing() {
 function FinalCta() {
   return (
     <section className="px-5 pb-24">
-      <div className="relative isolate mx-auto max-w-6xl overflow-hidden rounded-[2rem]">
+      <div className="relative isolate mx-auto max-w-6xl overflow-hidden rounded-[2.5rem]">
         <Image src="/images/cta-bridge.webp" alt="" fill sizes="(max-width: 1200px) 100vw, 1200px" className="-z-20 object-cover" />
-        <div className="absolute inset-0 -z-10 bg-linear-to-r from-black/75 via-black/45 to-black/20" />
-        <div className="px-8 py-20 sm:px-14">
-          <h2 className="max-w-xl font-display text-5xl leading-tight text-white">Your next post is already in a document somewhere.</h2>
-          <p className="mt-4 max-w-md text-mist/85">Upload it, check the facts, and publish it everywhere in a few minutes.</p>
-          <Button asChild size="lg" className="mt-8">
+        <div className="absolute inset-0 -z-10 bg-linear-to-t from-black/85 via-black/40 to-black/10" />
+        <div className="flex min-h-[60vh] flex-col items-center justify-end px-8 pb-16 text-center">
+          <h2 className="max-w-3xl font-display text-5xl leading-tight text-white md:text-7xl">Your next post is already waiting.</h2>
+          <p className="mt-4 max-w-lg text-lg text-mist/85">Connect your accounts in minutes. Your first post is free.</p>
+          <Button asChild size="lg" className="mt-8 rounded-full px-8">
             <Link href="/sign-up">
               Create your workspace <ArrowRight />
             </Link>
@@ -333,8 +288,8 @@ function FinalCta() {
 
 function Footer() {
   return (
-    <footer className="border-t border-white/8 py-10">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 text-sm text-stone sm:flex-row">
+    <footer className="border-t border-white/8 py-10 text-[13px]">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 text-stone sm:flex-row">
         <Logo />
         <p>© {new Date().getFullYear()} Verdant. Photos from Unsplash.</p>
         <div className="flex gap-4">
@@ -347,20 +302,11 @@ function Footer() {
           <Link href="/privacy" className="hover:text-white">
             Privacy
           </Link>
-          <Link href="/sign-in" className="hover:text-white">
-            Sign in
+          <Link href="/data-deletion" className="hover:text-white">
+            Data deletion
           </Link>
         </div>
       </div>
     </footer>
-  );
-}
-
-function SectionHead({ eyebrow, title, align = "center" }: { eyebrow: string; title: React.ReactNode; align?: "center" | "left" }) {
-  return (
-    <div className={align === "center" ? "text-center" : ""}>
-      <p className="text-xs font-medium uppercase tracking-[0.2em] text-moss">{eyebrow}</p>
-      <h2 className="mt-3 font-display text-5xl leading-[1.05] text-white md:text-6xl">{title}</h2>
-    </div>
   );
 }
