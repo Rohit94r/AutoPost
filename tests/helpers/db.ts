@@ -1,6 +1,7 @@
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
+import type { Platform } from "@/lib/platforms";
 import { encrypt } from "@/server/crypto";
 import { setDbForTesting, type Database } from "@/server/db";
 import * as schema from "@/server/db/schema";
@@ -49,7 +50,7 @@ export async function seedUserWorkspace(db: Database, opts: { plan?: string; rol
 export async function seedAccount(
   db: Database,
   workspaceId: string,
-  platform: "linkedin" | "instagram" | "x",
+  platform: Platform,
   over: Partial<typeof schema.socialAccounts.$inferInsert> = {},
 ) {
   const [acct] = await db
