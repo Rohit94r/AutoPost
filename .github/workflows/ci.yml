@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      # Unit + integration tests use in-process Postgres (PGlite) and mocked platform/AI HTTP.
+      - run: pnpm test
+      - run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+      - name: Check no secrets committed
+        run: |
+          ! git ls-files | grep -E '(^|/)\.env($|\.local|\.production)' || (echo "env file committed" && exit 1)
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: verdant
+          POSTGRES_PASSWORD: verdant
+          POSTGRES_DB: verdant
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U verdant" --health-interval 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgres://verdant:verdant@localhost:5432/verdant
+      REDIS_URL: redis://localhost:6379
+      APP_BASE_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret-0000
+      ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build && (pnpm start &) && npx wait-on http://localhost:3000/api/health
+      - run: pnpm test:e2e
+        env:
+          E2E_BASE_URL: http://localhost:3000
