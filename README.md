@@ -33,21 +33,23 @@ Detailed docs live in [`docs/`](docs/), including [Engagement](docs/ENGAGEMENT.m
 
 ## Feature overview
 
+The app sidebar is organised around the work: **Create** (Dashboard, Create post, Apps ▾ with one page per connected app), **Engage** (Inbox with Comments + Autopilot), **Publish** (Calendar, Queue, History, Analytics) and **Workspace** (Accounts, Brand voice, Settings, Help).
+
 | Module | What it does |
 |---|---|
 | **Auth & onboarding** | Email + password (with verification & reset), optional Google sign-in, DB-backed server sessions, onboarding wizard (workspace, time zone, brand voice). |
 | **Workspaces** | Every record is workspace-scoped. Membership + role checks on every request; client-supplied IDs are never trusted. |
 | **Social connections** | Official OAuth 2.0 for LinkedIn, Instagram (Instagram Login), X (PKCE). Single-use state, AES-256-GCM encrypted tokens, expiry & scope tracking, refresh, disconnect + revoke. |
-| **Unified composer** | One post → editable per-platform variants, media, hashtags, CTA, links, publish now / schedule with time zone, live limit validation & previews. |
-| **AI writing studio** | Generate, improve, rewrite, shorten, expand, change tone, hashtags, platform adaptation. Before/after diff. Natural Writing Engine with brand voice. |
-| **Document intelligence** | Upload PDF/image → validate (MIME + magic bytes) → text extraction / Gemini OCR → document-type-aware fact extraction with confidence & evidence → **user review & correction** → content directions → platform drafts. |
+| **Create post** | One place to write and publish: one post → editable per-platform variants, media, hashtags, CTA, links, publish now / schedule with time zone, live limit validation & previews. Built-in AI: generate per platform, improve, humanize, rewrite, shorten, expand, change tone, hashtags, quality check, before/after diff, brand voice. |
+| **Start from a document** (in Create post) | Upload PDF/image → validate (MIME + magic bytes) → text extraction / Gemini OCR → document-type-aware fact extraction with confidence & evidence → **user review & correction** → content directions → platform drafts. |
+| **AI images** (in Create post) | Image prompt + alt text from the post, image generation with Gemini, attached to the post in one click. |
 | **Media** | Validated uploads, image metadata + thumbnails, reuse, deletion, per-platform media validation, signed public URLs for platforms that fetch media (Instagram). |
 | **Publishing engine** | One job per destination account. Durable in Postgres, executed by a persistent BullMQ worker. Idempotency keys, atomic claims, bounded exponential backoff, permanent-error detection, reconnection states, partial success, cancellation. |
-| **Engagement inbox** | Comments, replies and mentions from every supporting platform, linked to the post they're on. Reply from the web and it posts on the platform; AI-suggested replies. |
-| **Autopilot** | Rules (all / questions / keywords / mentions) that draft or auto-post replies in your brand voice, with daily caps and safety: spam and abuse are never answered, negatives go to review. |
-| **Channels** | One page per connected platform: followers, posts (including imported ones), live metrics and comment counts. |
+| **Inbox → Comments** | Comments, replies and mentions from every supporting platform, linked to the post they're on. Reply from the web and it posts on the platform; AI-suggested replies. |
+| **Inbox → Autopilot** | Rules (all / questions / keywords / mentions) that draft or auto-post replies in your brand voice, with daily caps and safety: spam and abuse are never answered, negatives go to review. |
+| **Apps** | One page per connected app (sidebar → Apps ▾): account stats, likes / views / shares / comments, a 30-day posting chart, delivery success, autopilot status, every post with its metrics, and that app's comments with replies. |
 | **Calendar & queue** | Month / week / agenda views, filters, drag-and-drop rescheduling, edit & cancel. |
-| **History & recovery** | Every attempt recorded with understandable errors; retry only failed destinations. |
+| **History** | Every post you've made (drafts, published, AI-generated, templates, archived; search, tags, campaigns), the publishing log with each platform's real response and retry of failed destinations, and your media. |
 | **Analytics** | Publishing analytics from our own data + platform metrics only where the API and granted scopes allow. Missing/unsupported metrics are labelled, never invented. |
 | **Brand voice** | Multiple profiles: tone, audience, vocabulary, words to avoid, CTA/hashtag/emoji preferences, sample posts → derived style profile. |
 | **Notifications** | In-app notifications for published / failed / partial posts, expiring connections, AI failures. |

@@ -1,4 +1,4 @@
-# Engagement: inbox, autopilot and channels
+# Engagement: inbox, autopilot and app pages
 
 ## How data flows
 
@@ -14,14 +14,14 @@ worker (every 5 min)
 
 Items are unique per `(social_account_id, external_id)`, so repeated syncs never duplicate them. Comments written by the account itself are stored with `status=own` and hidden.
 
-## Inbox (`/inbox`)
+## Inbox → Comments (`/inbox`)
 
 - Filters: To do (new + needs review), Replied, Ignored, All; by platform; comment/reply/mention.
 - **Suggest reply** drafts a reply with AI. Nothing is posted until you press **Send reply**.
 - **Send reply** posts on the platform immediately, as the connected account, and records `replied_by=user`.
 - **Check for new** runs a sync for every account in the workspace right away.
 
-## Autopilot (`/autopilot`)
+## Inbox → Autopilot (`/inbox?tab=autopilot`)
 
 | Setting | Meaning |
 |---|---|
@@ -40,9 +40,9 @@ Safety rules applied to every rule:
 - replies are trimmed to each platform's limit;
 - if the platform rejects a reply (for example X's mention-only rule), the item goes to review with the reason.
 
-## Channels (`/channels/<platform>`)
+## App pages (sidebar → Apps ▾ → `/channels/<platform>`)
 
-Account stats (followers etc., refreshed every 6 h), totals, and every known post with its latest metrics and comment counts. Each count links to that post's comments in the inbox.
+Account stats (followers etc., refreshed every 6 h), totals (posts, comments, likes, views, shares), a 30-day posting chart, delivery success through Verdant, autopilot status, and every known post with its latest metrics. Below that is the app's own comment inbox: reply there and it posts on the platform. Each post's comment count filters the comments to that post (`?post=<id>`); **Check for new** syncs only that app.
 
 ## Costs to keep in mind
 

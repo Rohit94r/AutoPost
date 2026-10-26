@@ -87,7 +87,7 @@ Base path: `/api/v1`. All endpoints require a session cookie (from `/api/auth/*`
 | PATCH | `/engagement/:id` | `{ status: new|needs_review|ignored }` |
 | POST | `/engagement/:id/suggest` | AI draft + sentiment (nothing posted) |
 | POST | `/engagement/:id/reply` | `{ text }` → posted on the platform now |
-| POST | `/engagement/sync` | sync posts/comments/mentions for every connected account |
+| POST | `/engagement/sync` | sync posts/comments/mentions for every connected account (`?platform=` for one app) |
 | GET / POST | `/autopilot/rules` | list / create (admin) |
 | PATCH / DELETE | `/autopilot/rules/:id` | update / delete (admin) |
 
