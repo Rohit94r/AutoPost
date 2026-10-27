@@ -96,7 +96,7 @@ Key decisions (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)):
 - **Web:** Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind CSS v4, Radix UI, lucide icons, sonner toasts
 - **Server:** Next.js route handlers, zod schemas, better-auth, Drizzle ORM + drizzle-kit migrations, pino logging
 - **Jobs:** Redis + BullMQ 5, persistent worker (`tsx worker/index.ts` or compiled)
-- **Storage:** local disk (dev) or any S3-compatible bucket (AWS S3, Cloudflare R2, MinIO) — private by default, signed URLs
+- **Storage:** inside Postgres (default on Vercel: nothing extra to run), local disk (dev) or any S3-compatible bucket (AWS S3, Cloudflare R2). Private by default, signed URLs
 - **AI:** `groq-sdk` (Groq), `@google/genai` (Gemini) behind a provider-independent layer
 - **Docs/media:** `unpdf` (PDF text), Gemini multimodal (OCR/vision), `file-type` (magic bytes), `sharp` (image metadata/thumbnails)
 - **Tests:** Vitest (unit + integration on in-process Postgres via PGlite), Playwright (E2E)
@@ -167,7 +167,7 @@ See [`.env.example`](.env.example) for every variable with comments. Summary:
 | `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | for LinkedIn | LinkedIn app credentials |
 | `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` | for Instagram | Instagram Login app credentials |
 | `X_CLIENT_ID` / `X_CLIENT_SECRET` | for X | X OAuth 2.0 client |
-| `STORAGE_DRIVER` + `S3_*` | optional | `local` (default) or `s3` |
+| `STORAGE_DRIVER` + `S3_*` | optional | empty = `database` on Vercel, `local` elsewhere; or `s3` |
 | `ADMIN_EMAILS` | optional | Comma-separated emails allowed into `/admin` |
 
 **Never** put secrets in `NEXT_PUBLIC_*` variables, source files or Git.
@@ -240,7 +240,7 @@ Automated tests **never** call real platform APIs or publish to real accounts.
 
 ## Deployment
 
-**Vercel + Neon (recommended):** no extra servers. The `vercel-build` script migrates the database on production deploys, "Publish now" runs right after the request, and a scheduler calling `/api/cron/tick` every minute handles scheduled posts, comment sync and autopilot. Files upload straight to an S3-compatible bucket (Cloudflare R2). After the first deploy, sign in and open **Get started**: it walks each user through connecting their apps and shows admins exactly which settings are still missing.
+**Vercel + Neon (recommended):** no extra servers. The `vercel-build` script migrates the database on production deploys, "Publish now" runs right after the request, background work runs while people use the app, and a scheduler calling `/api/cron/tick` every minute keeps scheduled posts on time at any hour. Files are stored in the Neon database, uploaded in parts under Vercel's request limit, so Neon is the only service you need. After the first deploy, sign in and open **Get started**: it walks each user through connecting their apps and shows admins exactly which settings are still missing.
 
 **Self-hosted:** web (`pnpm start`) plus a persistent worker (`pnpm worker:prod`) with Redis.
 
