@@ -11,6 +11,7 @@ import { PLATFORM_META } from "@/lib/platforms";
 import { PlatformIcon } from "@/components/ui/platform";
 import { integrationStatus } from "@/server/env";
 import { setupProgress } from "@/server/setup/service";
+import { isAdmin } from "@/server/admin/service";
 
 export const metadata = { title: "Dashboard" };
 
@@ -89,7 +90,7 @@ export default async function DashboardPage() {
         </GlassCard>
       )}
 
-      {!integrations.groq && !integrations.gemini && (
+      {isAdmin(ctx.user.email) && !integrations.groq && !integrations.gemini && (
         <div className="mb-4 rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
           AI providers aren&apos;t configured on this server yet. Add <code>GROQ_API_KEY</code> and/or <code>GEMINI_API_KEY</code> to enable writing and document features.
         </div>

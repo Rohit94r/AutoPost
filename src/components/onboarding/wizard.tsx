@@ -16,7 +16,6 @@ interface Props {
   userName: string;
   workspace: { name: string };
   brand: { id: string; name: string } | null;
-  integrations: Record<string, boolean>;
 }
 
 const STEPS = ["Workspace", "Your voice", "Privacy"];
@@ -30,7 +29,7 @@ function detectTimeZone() {
   }
 }
 
-export function OnboardingWizard({ userName, workspace, brand, integrations }: Props) {
+export function OnboardingWizard({ userName, workspace, brand }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -139,11 +138,9 @@ export function OnboardingWizard({ userName, workspace, brand, integrations }: P
               </div>
               <Switch checked={consent} onCheckedChange={setConsent} label="Allow AI processing" />
             </div>
-            <Notice tone="info" title="Connected accounts">
-              You&apos;ll connect LinkedIn, Instagram and X from the Accounts page using each platform&apos;s official sign-in. Verdant never sees your passwords.
-              {!integrations.linkedin && !integrations.instagram && !integrations.x && " (No platform apps are configured on this server yet.)"}
+            <Notice tone="info" title="Next: connect your apps">
+              The Get started guide walks you through connecting Instagram, LinkedIn, X and the rest, one step at a time. Each uses the platform&apos;s own sign-in, so Verdant never sees your passwords.
             </Notice>
-            {!integrations.groq && !integrations.gemini && <Notice tone="warn">No AI provider keys are configured on this server yet, so AI features will show as unavailable.</Notice>}
           </div>
         )}
 

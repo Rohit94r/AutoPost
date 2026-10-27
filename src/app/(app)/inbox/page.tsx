@@ -13,6 +13,7 @@ import { db } from "@/server/db";
 import { socialAccounts } from "@/server/db/schema";
 import { listRules } from "@/server/engagement/service";
 import { env } from "@/server/env";
+import { isAdmin } from "@/server/admin/service";
 
 export const metadata = { title: "Inbox" };
 export const dynamic = "force-dynamic";
@@ -34,7 +35,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         title="Inbox"
         description={
           tab === "comments"
-            ? `Every comment and mention across your apps. Reply here and it posts on the platform.${env().ENGAGEMENT_X_ENABLED ? "" : " X replies are off by default because each read is billed (ENGAGEMENT_X_ENABLED)."}`
+            ? `Every comment and mention across your apps. Reply here and it posts on the platform.${env().ENGAGEMENT_X_ENABLED || !isAdmin(ctx.user.email) ? "" : " X replies are off by default because each read is billed (ENGAGEMENT_X_ENABLED, only admins see this)."}`
             : "Answer comments and mentions in your voice, automatically or as drafts you approve here in the Inbox."
         }
       />

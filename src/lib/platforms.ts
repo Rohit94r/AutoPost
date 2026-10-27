@@ -50,8 +50,10 @@ export interface PlatformInfo {
   connection: ConnectionType;
   /** What we can do through the official API (shown honestly in the UI). */
   can: { publish: boolean; comments: "read_reply" | "read" | "none"; mentions: boolean; metrics: boolean; importPosts: boolean };
-  /** One-line note shown in the Accounts page. */
+  /** One line for customers: what this app does here. */
   note: string;
+  /** Operator-only detail (approvals, billing, server requirements), shown to admins. */
+  adminNote?: string;
 }
 
 export const PLATFORM_META: Record<Platform, PlatformInfo> = {
@@ -63,7 +65,8 @@ export const PLATFORM_META: Record<Platform, PlatformInfo> = {
     group: "social",
     connection: "oauth",
     can: { publish: true, comments: "read_reply", mentions: false, metrics: true, importPosts: false },
-    note: "Personal profiles can publish. Comments, replies and analytics need Community Management API approval (organization pages).",
+    note: "Post text, photos and videos to your LinkedIn profile.",
+    adminNote: "Comments, replies and analytics need LinkedIn Community Management API approval (organization pages).",
   },
   instagram: {
     label: "Instagram",
@@ -73,7 +76,8 @@ export const PLATFORM_META: Record<Platform, PlatformInfo> = {
     group: "social",
     connection: "oauth",
     can: { publish: true, comments: "read_reply", mentions: false, metrics: true, importPosts: true },
-    note: "Business or Creator accounts only. Media must be reachable from a public HTTPS URL.",
+    note: "Post photos and Reels to an Instagram Business or Creator account, and reply to comments.",
+    adminNote: "Instagram downloads media from a public HTTPS URL, so APP_BASE_URL must be your public domain.",
   },
   x: {
     label: "X",
@@ -83,7 +87,8 @@ export const PLATFORM_META: Record<Platform, PlatformInfo> = {
     group: "social",
     connection: "oauth",
     can: { publish: true, comments: "read_reply", mentions: true, metrics: true, importPosts: true },
-    note: "Pay-per-use API: posts with links and every read cost credits on your X developer account.",
+    note: "Post to X and answer people who mention you.",
+    adminNote: "Pay-per-use API: posts with links and every read cost credits on your X developer account.",
   },
   facebook: {
     label: "Facebook Pages",
@@ -93,7 +98,7 @@ export const PLATFORM_META: Record<Platform, PlatformInfo> = {
     group: "social",
     connection: "oauth",
     can: { publish: true, comments: "read_reply", mentions: false, metrics: true, importPosts: true },
-    note: "Publishes to Pages you manage (not personal timelines, which Meta doesn't allow).",
+    note: "Post to Facebook Pages you manage and reply to comments.",
   },
   threads: {
     label: "Threads",
@@ -103,7 +108,7 @@ export const PLATFORM_META: Record<Platform, PlatformInfo> = {
     group: "social",
     connection: "oauth",
     can: { publish: true, comments: "read_reply", mentions: true, metrics: true, importPosts: true },
-    note: "Text, image or video posts up to 500 characters.",
+    note: "Post text, photos and videos (up to 500 characters) and reply to comments.",
   },
   youtube: {
     label: "YouTube",
@@ -113,7 +118,8 @@ export const PLATFORM_META: Record<Platform, PlatformInfo> = {
     group: "video",
     connection: "oauth",
     can: { publish: true, comments: "read_reply", mentions: false, metrics: true, importPosts: true },
-    note: "Video uploads only. Unverified Google projects can only upload private videos.",
+    note: "Upload videos to your YouTube channel and reply to comments.",
+    adminNote: "Unverified Google projects can only upload private videos; about 100 uploads a day per app.",
   },
   tiktok: {
     label: "TikTok",
@@ -123,7 +129,8 @@ export const PLATFORM_META: Record<Platform, PlatformInfo> = {
     group: "video",
     connection: "oauth",
     can: { publish: true, comments: "none", mentions: false, metrics: true, importPosts: true },
-    note: "Video posting via the Content Posting API. Until TikTok audits your app, posts are private (only you).",
+    note: "Post videos to your TikTok account.",
+    adminNote: "Until TikTok audits the app (Direct Post), new posts are private to the creator.",
   },
   pinterest: {
     label: "Pinterest",
@@ -133,7 +140,8 @@ export const PLATFORM_META: Record<Platform, PlatformInfo> = {
     group: "social",
     connection: "oauth",
     can: { publish: true, comments: "none", mentions: false, metrics: true, importPosts: false },
-    note: "Creates Pins on a board you choose. Needs an image.",
+    note: "Create Pins with your photos on a board you choose.",
+    adminNote: "Trial access creates sandbox Pins until Pinterest grants Standard access.",
   },
   reddit: {
     label: "Reddit",
@@ -143,7 +151,8 @@ export const PLATFORM_META: Record<Platform, PlatformInfo> = {
     group: "community",
     connection: "oauth",
     can: { publish: true, comments: "read_reply", mentions: true, metrics: true, importPosts: false },
-    note: "Posts to your profile or a subreddit you choose. Follow each subreddit's rules.",
+    note: "Post to your profile or a subreddit you choose. Follow each subreddit's rules.",
+    adminNote: "Reddit requires API approval for new apps; commercial use needs an agreement.",
   },
   bluesky: {
     label: "Bluesky",

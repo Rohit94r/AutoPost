@@ -10,6 +10,7 @@ import { db } from "@/server/db";
 import { socialAccounts } from "@/server/db/schema";
 import { env } from "@/server/env";
 import { getAdapter } from "@/server/platforms/registry";
+import { isAdmin } from "@/server/admin/service";
 import { roleAtLeast } from "@/server/workspaces/service";
 
 export const metadata = { title: "Connected accounts" };
@@ -53,7 +54,7 @@ export default async function AccountsPage() {
         }
       />
       <Suspense>
-        <Accounts accounts={accounts} platforms={platforms} canManage={roleAtLeast(ctx.role, "admin")} baseUrl={env().APP_BASE_URL} />
+        <Accounts accounts={accounts} platforms={platforms} canManage={roleAtLeast(ctx.role, "admin")} baseUrl={env().APP_BASE_URL} isAdmin={isAdmin(ctx.user.email)} />
       </Suspense>
     </>
   );

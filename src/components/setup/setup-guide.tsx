@@ -192,78 +192,139 @@ function HowTo({ steps, label = "How to do it" }: { steps: string[]; label?: str
 
 function Apps({ platforms, connected, skipped, canManage, isAdmin, busy, onSkip, onUnskip }: { platforms: SetupGuideProps["platforms"]; connected: Platform[]; skipped: Set<string>; canManage: boolean; isAdmin: boolean; busy: string | null; onSkip: (id: string) => void; onUnskip: (id: string) => void }) {
   const [open, setOpen] = useState<Platform | null>(null);
+  // Customers only see apps they can actually connect; admins also see the ones still to set up.
+  const visible = PLATFORMS.filter((p) => {
+    const info = platforms.find((x) => x.platform === p);
+    return isAdmin || connected.includes(p) || PLATFORM_META[p].connection === "credentials" || info?.configured;
+  });
   return (
-    <ul className="mt-4 divide-y divide-white/6 rounded-xl bg-black/20">
-      {PLATFORMS.map((p) => {
-        const meta = PLATFORM_META[p];
-        const info = platforms.find((x) => x.platform === p)!;
-        const isConnected = connected.includes(p);
-        const available = meta.connection === "credentials" || info.configured;
-        const id = `app:${p}`;
-        const isSkipped = !isConnected && skipped.has(id);
-        const guide = CONNECT_GUIDES[p];
-        return (
-          <li key={p} className="px-3 py-2.5">
-            <div className="flex flex-wrap items-center gap-3">
-              <PlatformIcon platform={p} className={cn("size-4", isConnected ? "text-moss" : "text-fog")} />
-              <span className={cn("min-w-28 flex-1 text-sm", isSkipped ? "text-stone line-through" : "text-white")}>{meta.label}</span>
-              {isConnected ? (
-                <>
-                  <span className="inline-flex items-center gap-1 text-xs text-moss">
-                    <Check className="size-3.5" /> Connected
-                  </span>
-                  <Link href={`/channels/${p}`} className="text-xs text-fog hover:text-white">
-                    Open
-                  </Link>
-                </>
-              ) : !available ? (
-                <span className="text-xs text-stone">{isAdmin ? "Add its developer app in Server setup first" : "Not enabled on this server yet"}</span>
-              ) : (
-                <>
-                  <button onClick={() => setOpen(open === p ? null : p)} aria-expanded={open === p} className="inline-flex items-center gap-1 text-xs text-moss hover:underline">
-                    How to connect <ChevronDown className={cn("size-3.5 transition", open === p && "rotate-180")} />
-                  </button>
-                  {isSkipped ? (
-                    <Button size="sm" variant="ghost" onClick={() => onUnskip(id)} loading={busy === id}>
-                      <Undo2 /> Undo
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="ghost" onClick={() => onSkip(id)} loading={busy === id}>
-                      Skip
-                    </Button>
-                  )}
-                  {canManage && (
-                    <Button asChild size="sm" variant="glass">
-                      <Link href={`/accounts?connect=${p}`}>
-                        <Plug /> Connect
-                      </Link>
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
-            {open === p && (
-              <div className="mt-3 rounded-lg bg-black/25 p-3 text-sm">
-                <p className="text-xs uppercase tracking-wider text-stone">You need</p>
-                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-mist">
-                  {guide.need.map((x) => (
-                    <li key={x}>{x}</li>
-                  ))}
-                </ul>
-                <p className="mt-3 text-xs uppercase tracking-wider text-stone">Steps</p>
-                <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-mist">
-                  {guide.steps.map((x) => (
-                    <li key={x}>{x}</li>
-                  ))}
-                </ol>
-                {guide.note && <p className="mt-3 text-xs text-sun">{guide.note}</p>}
-                {!canManage && <p className="mt-3 text-xs text-stone">Only workspace admins can connect accounts. Ask your workspace owner.</p>}
+    <div className="mt-4">
+      <p className="mb-2 text-sm text-fog">Pick the apps you post to. Open “How to connect” for a short walkthrough before you start.</p>
+      <ul className="divide-y divide-white/6 rounded-xl bg-black/20">
+        {visible.map((p) => {
+          const meta = PLATFORM_META[p];
+          const info = platforms.find((x) => x.platform === p)!;
+          const isConnected = connected.includes(p);
+          const available = meta.connection === "credentials" || info.configured;
+          const id = `app:${p}`;
+          const isSkipped = !isConnected && skipped.has(id);
+          const guide = CONNECT_GUIDES[p];
+          return (
+            <li key={p} className="px-3 py-2.5">
+              <div className="flex flex-wrap items-center gap-3">
+                <PlatformIcon platform={p} className={cn("size-4", isConnected ? "text-moss" : "text-fog")} />
+                <span className={cn("min-w-28 flex-1 text-sm", isSkipped ? "text-stone line-through" : "text-white")}>{meta.label}</span>
+                {isConnected ? (
+                  <>
+                    <span className="inline-flex items-center gap-1 text-xs text-moss">
+                      <Check className="size-3.5" /> Connected
+                    </span>
+                    <Link href={`/channels/${p}`} className="text-xs text-fog hover:text-white">
+                      Open
+                    </Link>
+                  </>
+                ) : !available ? (
+                  <>
+                    <span className="text-xs text-stone">Add its developer app in Server setup first (only admins see this)</span>
+                    <button onClick={() => setOpen(open === p ? null : p)} aria-expanded={open === p} className="inline-flex items-center gap-1 text-xs text-moss hover:underline">
+                      Preview walkthrough <ChevronDown className={cn("size-3.5 transition", open === p && "rotate-180")} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setOpen(open === p ? null : p)} aria-expanded={open === p} className="inline-flex items-center gap-1 text-xs text-moss hover:underline">
+                      How to connect <ChevronDown className={cn("size-3.5 transition", open === p && "rotate-180")} />
+                    </button>
+                    {isSkipped ? (
+                      <Button size="sm" variant="ghost" onClick={() => onUnskip(id)} loading={busy === id}>
+                        <Undo2 /> Undo
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="ghost" onClick={() => onSkip(id)} loading={busy === id}>
+                        Skip
+                      </Button>
+                    )}
+                    {canManage && (
+                      <Button asChild size="sm" variant="glass">
+                        <Link href={`/accounts?connect=${p}`}>
+                          <Plug /> Connect
+                        </Link>
+                      </Button>
+                    )}
+                  </>
+                )}
               </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+              {open === p && <Lesson platform={p} guide={guide} canManage={canManage} preview={!available} />}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/** A short walkthrough for connecting one app, written for someone doing it for the first time. */
+function Lesson({ platform, guide, canManage, preview }: { platform: Platform; guide: (typeof CONNECT_GUIDES)[Platform]; canManage: boolean; preview: boolean }) {
+  const label = PLATFORM_META[platform].label;
+  return (
+    <div className="mt-3 space-y-4 rounded-xl bg-black/25 p-4 text-sm">
+      <p className="text-mist">{guide.what}</p>
+      <section>
+        <h4 className="text-xs font-medium uppercase tracking-wider text-stone">Before you start</h4>
+        <ul className="mt-1.5 space-y-1 text-mist">
+          {guide.need.map((x) => (
+            <li key={x} className="flex gap-2">
+              <Check className="mt-0.5 size-3.5 shrink-0 text-moss" /> {x}
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section>
+        <h4 className="text-xs font-medium uppercase tracking-wider text-stone">Step by step</h4>
+        <ol className="mt-2 space-y-2.5">
+          {guide.steps.map((st, i) => (
+            <li key={st.title} className="flex gap-3">
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-moss/15 text-xs font-semibold text-moss">{i + 1}</span>
+              <span>
+                <span className="block font-medium text-white">{st.title}</span>
+                <span className="block text-fog">{st.detail}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <section>
+        <h4 className="text-xs font-medium uppercase tracking-wider text-stone">What you&apos;re allowing</h4>
+        <p className="mt-1 text-fog">{guide.permissions}</p>
+      </section>
+      <section>
+        <h4 className="text-xs font-medium uppercase tracking-wider text-stone">After connecting</h4>
+        <p className="mt-1 text-fog">{guide.after}</p>
+      </section>
+      {guide.note && <p className="rounded-lg bg-sun/10 px-3 py-2 text-xs text-sun">{guide.note}</p>}
+      <section>
+        <h4 className="text-xs font-medium uppercase tracking-wider text-stone">If something goes wrong</h4>
+        <dl className="mt-1.5 space-y-2">
+          {guide.trouble.map((t) => (
+            <div key={t.q}>
+              <dt className="text-mist">{t.q}</dt>
+              <dd className="text-fog">{t.a}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      {preview ? (
+        <p className="text-xs text-stone">Preview: customers see this walkthrough with a Connect button once {label}&apos;s app keys are set in Server setup.</p>
+      ) : canManage ? (
+        <Button asChild size="sm">
+          <Link href={`/accounts?connect=${platform}`}>
+            <Plug /> Connect {label} now
+          </Link>
+        </Button>
+      ) : (
+        <p className="text-xs text-stone">Only workspace admins can connect accounts. Ask your workspace owner to do it.</p>
+      )}
+    </div>
   );
 }
 

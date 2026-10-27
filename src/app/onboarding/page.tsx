@@ -3,7 +3,6 @@ import { Logo } from "@/components/brand";
 import { OnboardingWizard } from "@/components/onboarding/wizard";
 import { requirePageContext } from "@/server/auth/session";
 import { getDefaultBrand } from "@/server/brand/service";
-import { integrationStatus } from "@/server/env";
 
 export const metadata = { title: "Welcome" };
 export const dynamic = "force-dynamic";
@@ -22,7 +21,6 @@ export default async function OnboardingPage() {
         userName={ctx.user.name}
         workspace={{ name: ctx.workspace.name }}
         brand={brand ? { id: brand.id, name: brand.name } : null}
-        integrations={integrationStatus()}
       />
     </div>
   );

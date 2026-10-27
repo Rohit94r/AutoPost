@@ -44,7 +44,9 @@ const GROUPS: { id: PlatformGroup; label: string }[] = [
   { id: "web", label: "Your website" },
 ];
 
-export function Accounts({ accounts, platforms, canManage, baseUrl }: { accounts: AccountView[]; platforms: PlatformView[]; canManage: boolean; baseUrl: string }) {
+/** `isAdmin`: the operator also sees platforms that aren't set up yet, with setup hints. Customers only see what they can use. */
+export function Accounts({ accounts, platforms: allPlatforms, canManage, baseUrl, isAdmin }: { accounts: AccountView[]; platforms: PlatformView[]; canManage: boolean; baseUrl: string; isAdmin: boolean }) {
+  const platforms = isAdmin ? allPlatforms : allPlatforms.filter((p) => PLATFORM_META[p.platform].connection === "credentials" || p.configured || accounts.some((a) => a.platform === p.platform && a.status !== "disconnected"));
   const router = useRouter();
   const params = useSearchParams();
   const [busy, setBusy] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function Accounts({ accounts, platforms, canManage, baseUrl }: { accounts
     router.replace("/accounts");
     const p = platforms.find((x) => x.platform === platform);
     if (!p || !canManage) return;
-    if (PLATFORM_META[p.platform].connection !== "credentials" && !p.configured) return toast.error(`${PLATFORM_META[p.platform].label} isn't enabled on this server yet.`);
+    if (PLATFORM_META[p.platform].connection !== "credentials" && !p.configured) return toast.error(`${PLATFORM_META[p.platform].label} isn't available yet.`);
     void connect(p);
   });
   useEffect(() => {
@@ -135,6 +137,7 @@ export function Accounts({ accounts, platforms, canManage, baseUrl }: { accounts
                   p={p}
                   accounts={accounts.filter((a) => a.platform === p.platform && a.status !== "disconnected")}
                   canManage={canManage}
+                  isAdmin={isAdmin}
                   baseUrl={baseUrl}
                   busy={busy}
                   onConnect={() => connect(p)}
@@ -182,6 +185,7 @@ function PlatformCard({
   p,
   accounts,
   canManage,
+  isAdmin,
   baseUrl,
   busy,
   onConnect,
@@ -192,6 +196,7 @@ function PlatformCard({
   p: PlatformView;
   accounts: AccountView[];
   canManage: boolean;
+  isAdmin: boolean;
   baseUrl: string;
   busy: string | null;
   onConnect: () => void;
@@ -210,10 +215,11 @@ function PlatformCard({
         </span>
         <div className="flex-1">
           <h3 className="font-semibold text-white">{meta.label}</h3>
-          <p className="text-xs text-stone">{isCred ? "Connect with a token or link" : p.configured ? "Official sign-in" : "App credentials not set on server"}</p>
+          <p className="text-xs text-stone">{isCred ? "Connect with a token or link" : p.configured ? "Official sign-in" : "Not set up yet (only admins see this)"}</p>
         </div>
       </div>
       <p className="mt-3 text-sm text-fog">{meta.note}</p>
+      {isAdmin && meta.adminNote && <p className="mt-1 text-xs text-sun">{meta.adminNote} (only admins see this)</p>}
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
         <Capability ok={meta.can.publish}>Publish</Capability>
         <Capability ok={meta.can.comments !== "none"}>Comments</Capability>
@@ -287,7 +293,7 @@ function PlatformCard({
         )
       ) : (
         <Notice tone="info" className="mt-4">
-          Add this platform&apos;s app credentials to the server environment and register this callback URL:
+          Only admins see this. Add this platform&apos;s app keys (Get started → Server setup) and register this redirect URL:
           <code className="mt-1 block break-all text-[11px] text-white">{`${baseUrl}/api/v1/social-accounts/${p.platform}/callback`}</code>
           <a href={meta.docs} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs underline">
             Platform docs <ExternalLink className="size-3" />
