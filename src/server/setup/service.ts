@@ -189,7 +189,7 @@ export async function serverChecks(): Promise<ServerCheck[]> {
       required: false,
       ok: Boolean(e.RESEND_API_KEY),
       detail: e.RESEND_API_KEY ? `Sending as ${e.EMAIL_FROM}.` : "Without it, password-reset emails can't be sent.",
-      steps: ["At resend.com add and verify your domain, then create an API key.", "Set RESEND_API_KEY and EMAIL_FROM (e.g. Verdant <no-reply@yourdomain.com>). Redeploy."],
+      steps: ["At resend.com add and verify your domain, then create an API key.", "Set RESEND_API_KEY and EMAIL_FROM (e.g. FLOWT <no-reply@yourdomain.com>). Redeploy."],
       envKeys: ["RESEND_API_KEY", "EMAIL_FROM"],
     },
     {

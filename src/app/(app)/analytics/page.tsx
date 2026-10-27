@@ -42,7 +42,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
       <PageHeader
         eyebrow="Analytics"
         title="Performance"
-        description="Publishing numbers come from Verdant's own records. Engagement comes only from platform APIs, and missing data is labelled rather than estimated."
+        description="Publishing numbers come from FLOWT's own records. Engagement comes only from platform APIs, and missing data is labelled rather than estimated."
         actions={
           <nav className="inline-flex rounded-xl bg-black/25 p-1" aria-label="Date range">
             {RANGES.map((r) => (

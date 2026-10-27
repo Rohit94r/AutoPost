@@ -44,7 +44,7 @@ export default async function UsagePage() {
           <h2 className="mt-1 font-display text-4xl text-white">{plan.name}</h2>
           <p className="mt-1 text-sm text-fog">{plan.description}</p>
           <Notice tone="info" className="mt-5">
-            Online payments aren&apos;t enabled yet. To change plans, contact your Verdant administrator. No card is ever requested in-app.
+            Online payments aren&apos;t enabled yet. To change plans, contact your FLOWT administrator. No card is ever requested in-app.
           </Notice>
         </GlassCard>
       </div>

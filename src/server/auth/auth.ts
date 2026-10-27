@@ -17,7 +17,7 @@ function createAuth() {
     logger.warn("REQUIRE_EMAIL_VERIFICATION is on but RESEND_API_KEY is missing; verification is not enforced");
   }
   return betterAuth({
-    appName: "Verdant",
+    appName: "FLOWT",
     baseURL: e.APP_BASE_URL,
     secret: e.BETTER_AUTH_SECRET,
     trustedOrigins: [e.APP_BASE_URL],
@@ -32,16 +32,16 @@ function createAuth() {
       requireEmailVerification: e.REQUIRE_EMAIL_VERIFICATION && canEmail,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
-        const m = actionEmail("Reset your password", "We received a request to reset your Verdant password.", url, "Reset password");
-        await sendMail({ to: user.email, subject: "Reset your Verdant password", ...m });
+        const m = actionEmail("Reset your password", "We received a request to reset your FLOWT password.", url, "Reset password");
+        await sendMail({ to: user.email, subject: "Reset your FLOWT password", ...m });
       },
     },
     emailVerification: {
       sendOnSignUp: canEmail || e.NODE_ENV !== "production",
       autoSignInAfterVerification: true,
       sendVerificationEmail: async ({ user, url }) => {
-        const m = actionEmail("Verify your email", "Confirm your email address to secure your Verdant account.", url, "Verify email");
-        await sendMail({ to: user.email, subject: "Verify your Verdant email", ...m });
+        const m = actionEmail("Verify your email", "Confirm your email address to secure your FLOWT account.", url, "Verify email");
+        await sendMail({ to: user.email, subject: "Verify your FLOWT email", ...m });
       },
     },
     socialProviders:
@@ -55,7 +55,7 @@ function createAuth() {
     rateLimit: { enabled: true, window: 60, max: 30 },
     advanced: {
       useSecureCookies: e.NODE_ENV === "production",
-      cookiePrefix: "verdant",
+      cookiePrefix: "flowt",
       database: { generateId: () => crypto.randomUUID() },
     },
     databaseHooks: {

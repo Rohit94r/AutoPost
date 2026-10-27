@@ -7,8 +7,8 @@ import { PlatformError, type CredentialField, type PublishInput, type PublishRes
 /**
  * "Custom website": POSTs each post as JSON to the user's endpoint (their site, Zapier/Make/n8n,
  * a serverless function…). Requests are signed so the receiver can verify them:
- *   X-Verdant-Timestamp: <unix seconds>
- *   X-Verdant-Signature: sha256=<hex HMAC-SHA256(secret, `${timestamp}.${body}`)>
+ *   X-FLOWT-Timestamp: <unix seconds>
+ *   X-FLOWT-Signature: sha256=<hex HMAC-SHA256(secret, `${timestamp}.${body}`)>
  */
 export function signWebhook(secret: string, timestamp: number, body: string) {
   return `sha256=${createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex")}`;
@@ -19,8 +19,8 @@ export class WebhookAdapter extends BaseAdapter {
 
   credentialFields(): CredentialField[] {
     return [
-      { key: "url", label: "Endpoint URL", type: "url", placeholder: "https://yoursite.com/api/verdant", required: true },
-      { key: "secret", label: "Signing secret", type: "password", help: "Make up a long random value (16+ characters) and store the same value on your server to verify the X-Verdant-Signature header.", required: true },
+      { key: "url", label: "Endpoint URL", type: "url", placeholder: "https://yoursite.com/api/flowt", required: true },
+      { key: "secret", label: "Signing secret", type: "password", help: "Make up a long random value (16+ characters) and store the same value on your server to verify the X-FLOWT-Signature header.", required: true },
     ];
   }
 
@@ -29,7 +29,7 @@ export class WebhookAdapter extends BaseAdapter {
     const ts = Math.floor(Date.now() / 1000);
     const res = await platformFetch(
       url,
-      { method: "POST", headers: { "Content-Type": "application/json", "User-Agent": "Verdant-Webhook/1.0", "X-Verdant-Timestamp": String(ts), "X-Verdant-Signature": signWebhook(secret, ts, body) }, body },
+      { method: "POST", headers: { "Content-Type": "application/json", "User-Agent": "FLOWT-Webhook/1.0", "X-FLOWT-Timestamp": String(ts), "X-FLOWT-Signature": signWebhook(secret, ts, body) }, body },
       { userHost: true, timeoutMs: 20_000, ...opts },
     );
     if (res.status === 410) throw new PlatformError("auth", "Your endpoint returned 410 Gone. Reconnect with a new URL.");
@@ -44,7 +44,7 @@ export class WebhookAdapter extends BaseAdapter {
     // The user chooses the secret so their server can verify signatures (a generated one would never be shown to them).
     const secret = values.secret?.trim() ?? "";
     if (secret.length < 16) throw new PlatformError("validation", "Use a signing secret of at least 16 characters, and store the same value on your server.");
-    await this.send(url, secret, { event: "verdant.ping", message: "Verdant is checking this endpoint. Respond with any 2xx status." });
+    await this.send(url, secret, { event: "flowt.ping", message: "FLOWT is checking this endpoint. Respond with any 2xx status." });
     const host = new URL(url).host;
     return {
       tokens: { accessToken: secret, refreshToken: null, expiresAt: null, scopes: [] },

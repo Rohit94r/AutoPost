@@ -31,7 +31,7 @@ export default function Landing() {
           <h2 id="story-title" className="mt-3 font-display text-5xl leading-[1.05] text-white md:text-7xl">
             From “I did a thing” to <span className="text-gradient">everyone knowing.</span>
           </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-fog">Here&apos;s what Verdant does, told as one afternoon in one person&apos;s life.</p>
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-fog">Here&apos;s what FLOWT does, told as one afternoon in one person&apos;s life.</p>
         </Reveal>
         <div className="mt-10">
           <Story />
@@ -84,7 +84,7 @@ function Hero() {
     <section className="relative isolate flex min-h-[100svh] flex-col items-center justify-start overflow-hidden px-5 pt-32 text-center">
       <Image src="/images/hero-peaks.webp" alt="" fill priority sizes="100vw" className="-z-20 object-cover object-bottom" />
       <div className="absolute inset-0 -z-10 bg-linear-to-b from-ink/80 via-ink/20 to-ink" />
-      <p className="animate-rise text-lg font-medium text-sun">Verdant</p>
+      <p className="animate-rise text-lg font-medium text-sun">FLOWT</p>
       <h1 className="mt-3 max-w-5xl animate-rise font-display text-[3.6rem] leading-[0.95] tracking-tight text-white [animation-delay:120ms] sm:text-8xl lg:text-[8.5rem]">
         Say it once.
         <br />
@@ -291,7 +291,7 @@ function Footer() {
     <footer className="border-t border-white/8 py-10 text-[13px]">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 text-stone sm:flex-row">
         <Logo />
-        <p>© {new Date().getFullYear()} Verdant. Photos from Unsplash.</p>
+        <p>© {new Date().getFullYear()} FLOWT. Photos from Unsplash.</p>
         <div className="flex gap-4">
           <Link href="/help" className="hover:text-white">
             Help

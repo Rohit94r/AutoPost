@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <Logo />
       </div>
       <div className="w-full max-w-md animate-rise">{children}</div>
-      <p className="absolute bottom-4 text-xs text-white/50">Your social passwords never touch Verdant.</p>
+      <p className="absolute bottom-4 text-xs text-white/50">Your social passwords never touch FLOWT.</p>
     </div>
   );
 }

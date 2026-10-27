@@ -40,7 +40,7 @@ Paste the strings exactly as Neon shows them. The app removes client-only option
 ### No Docker? Use the built-in local database
 
 ```bash
-pnpm db:local   # Postgres (PGlite) on 127.0.0.1:5433, data in ~/.verdant/pglite
+pnpm db:local   # Postgres (PGlite) on 127.0.0.1:5433, data in ~/.flowt/pglite
 ```
 
 Then set in `.env.local`:

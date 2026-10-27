@@ -80,7 +80,7 @@ export class WordPressAdapter extends BaseAdapter {
       const media = (await this.call(
         `${site}/wp-json/wp/v2/media`,
         input.accessToken,
-        { method: "POST", headers: { "Content-Type": img.mimeType, "Content-Disposition": `attachment; filename="verdant-${img.id}.${img.mimeType.split("/")[1]}"` }, body: new Uint8Array(await img.load()) },
+        { method: "POST", headers: { "Content-Type": img.mimeType, "Content-Disposition": `attachment; filename="flowt-${img.id}.${img.mimeType.split("/")[1]}"` }, body: new Uint8Array(await img.load()) },
         { timeoutMs: 120_000 },
       )) as { id: number };
       featured = media.id;

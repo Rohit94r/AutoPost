@@ -10,7 +10,7 @@ export default function PrivacyPage() {
   const name = e.LEGAL_ENTITY_NAME;
   const contact = contactLine(e.SUPPORT_EMAIL, name);
   return (
-    <LegalPage title="Privacy Policy" intro={<>This policy explains what personal data {name} collects through Verdant, why, who processes it, how long we keep it, and the choices you have.</>}>
+    <LegalPage title="Privacy Policy" intro={<>This policy explains what personal data {name} collects through FLOWT, why, who processes it, how long we keep it, and the choices you have.</>}>
       <section>
         <h2>1. Data we collect</h2>
         <ul>
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
       </section>
       <section>
         <h2>5. Processors and sharing</h2>
-        <p>We share data only with service providers who process it on our behalf to run Verdant:</p>
+        <p>We share data only with service providers who process it on our behalf to run FLOWT:</p>
         <ul>
           <li>Hosting, database, queue and file storage providers used by the operator of this instance;</li>
           <li>AI providers: Groq and Google (Gemini API);</li>
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
       </section>
       <section>
         <h2>10. Children</h2>
-        <p>Verdant is not intended for children under 16, and we do not knowingly collect their data.</p>
+        <p>FLOWT is not intended for children under 16, and we do not knowingly collect their data.</p>
       </section>
       <section>
         <h2>11. Changes and contact</h2>

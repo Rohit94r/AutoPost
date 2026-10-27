@@ -561,7 +561,7 @@ export const publishingAttempts = pgTable(
 );
 
 /**
- * Every post we know about on a connected account: published through Verdant (`source=verdant`,
+ * Every post we know about on a connected account: published through FLOWT (`source=flowt`,
  * linked to a job) or imported from the platform (`source=imported`) so comments and metrics can
  * be shown for the whole account, not just posts created here.
  */
@@ -582,7 +582,7 @@ export const publishedPosts = pgTable(
     platform: platformEnum("platform").notNull(),
     externalPostId: text("external_post_id").notNull(),
     url: text("url"),
-    source: text("source").notNull().default("verdant"),
+    source: text("source").notNull().default("flowt"),
     text: text("text"),
     thumbnailUrl: text("thumbnail_url"),
     publishedAt: ts("published_at").notNull(),

@@ -7,7 +7,7 @@ import pino from "pino";
  */
 export const logger = pino({
   level: process.env.LOG_LEVEL ?? (process.env.NODE_ENV === "test" ? "silent" : "info"),
-  base: { service: process.env.VERDANT_SERVICE ?? (/worker/.test(process.argv[1] ?? "") ? "worker" : "web") },
+  base: { service: process.env.FLOWT_SERVICE ?? (/worker/.test(process.argv[1] ?? "") ? "worker" : "web") },
   redact: {
     paths: [
       "*.accessToken",
@@ -30,7 +30,7 @@ export const logger = pino({
     ],
     censor: "[redacted]",
   },
-  ...(process.env.NODE_ENV === "development" && !process.env.VERDANT_JSON_LOGS
+  ...(process.env.NODE_ENV === "development" && !process.env.FLOWT_JSON_LOGS
     ? { transport: { target: "pino-pretty", options: { colorize: true, translateTime: "HH:MM:ss" } } }
     : {}),
 });

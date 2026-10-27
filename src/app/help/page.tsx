@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 export const metadata = { title: "Help & privacy" };
 
 const FAQ: [string, React.ReactNode][] = [
-  ["How do accounts connect?", "Through each platform's official OAuth screen. Verdant never asks for or sees your social passwords. Tokens are encrypted (AES-256-GCM) on the server and never sent to your browser."],
+  ["How do accounts connect?", "Through each platform's official OAuth screen. FLOWT never asks for or sees your social passwords. Tokens are encrypted (AES-256-GCM) on the server and never sent to your browser."],
   ["Why can't I publish to my Instagram account?", "Instagram only allows API publishing for professional (Business or Creator) accounts, and Instagram must be able to download your image or video from a public HTTPS address. JPEG is required; PNG and WebP are converted automatically."],
-  ["Why does LinkedIn ask me to reconnect every ~60 days?", "LinkedIn access tokens last 60 days and LinkedIn only offers automatic refresh to approved partners. Verdant reminds you a week ahead."],
-  ["Does X cost anything?", "X's API is pay-per-use for the developer account running this Verdant instance, and posts containing links cost more. The composer warns you when a link is included."],
+  ["Why does LinkedIn ask me to reconnect every ~60 days?", "LinkedIn access tokens last 60 days and LinkedIn only offers automatic refresh to approved partners. FLOWT reminds you a week ahead."],
+  ["Does X cost anything?", "X's API is pay-per-use for the developer account running this FLOWT instance, and posts containing links cost more. The composer warns you when a link is included."],
   ["What happens if one platform fails?", "Each destination is its own job. If LinkedIn succeeds and Instagram fails, you'll see a partial result and can retry only Instagram. If we can't tell whether a post went live (for example a timeout during publishing), we never retry automatically; we ask you to check first, to avoid duplicates."],
   ["What does the AI see?", "Only what you send: your idea, draft, or a document you upload with explicit consent. Text tasks use Groq; documents use Google Gemini. Documents are never re-routed to another provider. Instructions hidden inside documents are ignored."],
   ["Will the AI invent achievements?", "It's instructed not to, and every draft is checked for figures that aren't in your source, which are flagged for you. You review and edit everything before publishing. Reading a certificate does not verify that it's authentic."],

@@ -61,7 +61,7 @@ CREATE TABLE "engagement_items" (
 );
 --> statement-breakpoint
 ALTER TABLE "published_posts" ALTER COLUMN "job_id" DROP NOT NULL;--> statement-breakpoint
-ALTER TABLE "published_posts" ADD COLUMN "source" text DEFAULT 'verdant' NOT NULL;--> statement-breakpoint
+ALTER TABLE "published_posts" ADD COLUMN "source" text DEFAULT 'flowt' NOT NULL;--> statement-breakpoint
 ALTER TABLE "published_posts" ADD COLUMN "text" text;--> statement-breakpoint
 ALTER TABLE "published_posts" ADD COLUMN "thumbnail_url" text;--> statement-breakpoint
 ALTER TABLE "published_posts" ADD COLUMN "last_comments_at" timestamp with time zone;--> statement-breakpoint

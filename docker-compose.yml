@@ -4,13 +4,13 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: verdant
-      POSTGRES_PASSWORD: verdant
-      POSTGRES_DB: verdant
+      POSTGRES_USER: flowt
+      POSTGRES_PASSWORD: flowt
+      POSTGRES_DB: flowt
     ports: ["5432:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U verdant"]
+      test: ["CMD-SHELL", "pg_isready -U flowt"]
       interval: 5s
       retries: 10
   redis:

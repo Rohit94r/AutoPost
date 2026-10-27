@@ -139,7 +139,7 @@ export function OnboardingWizard({ userName, workspace, brand }: Props) {
               <Switch checked={consent} onCheckedChange={setConsent} label="Allow AI processing" />
             </div>
             <Notice tone="info" title="Next: connect your apps">
-              The Get started guide walks you through connecting Instagram, LinkedIn, X and the rest, one step at a time. Each uses the platform&apos;s own sign-in, so Verdant never sees your passwords.
+              The Get started guide walks you through connecting Instagram, LinkedIn, X and the rest, one step at a time. Each uses the platform&apos;s own sign-in, so FLOWT never sees your passwords.
             </Notice>
           </div>
         )}
@@ -154,7 +154,7 @@ export function OnboardingWizard({ userName, workspace, brand }: Props) {
             </Button>
           ) : (
             <Button onClick={finish} loading={busy}>
-              Enter Verdant <ArrowRight />
+              Enter FLOWT <ArrowRight />
             </Button>
           )}
         </div>

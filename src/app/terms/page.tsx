@@ -14,15 +14,15 @@ export default function TermsPage() {
       title="Terms of Service"
       intro={
         <>
-          These terms govern your use of the Verdant service operated by {name} (&quot;we&quot;, &quot;us&quot;). By creating an account or using the service you agree to them. If you
-          use Verdant for an organisation, you confirm you may accept these terms on its behalf.
+          These terms govern your use of the FLOWT service operated by {name} (&quot;we&quot;, &quot;us&quot;). By creating an account or using the service you agree to them. If you
+          use FLOWT for an organisation, you confirm you may accept these terms on its behalf.
         </>
       }
     >
       <section>
         <h2>1. The service</h2>
         <p>
-          Verdant helps you draft social media content (optionally with AI), extract facts from documents you upload, and publish or schedule posts to social accounts you connect
+          FLOWT helps you draft social media content (optionally with AI), extract facts from documents you upload, and publish or schedule posts to social accounts you connect
           (currently LinkedIn, Instagram and X) through those platforms&apos; official APIs.
         </p>
       </section>
@@ -70,7 +70,7 @@ export default function TermsPage() {
       <section>
         <h2>5. AI features</h2>
         <ul>
-          <li>AI suggestions may be inaccurate or incomplete. Verdant flags figures that don&apos;t appear in your source, but you must check every fact, name, date and claim before publishing.</li>
+          <li>AI suggestions may be inaccurate or incomplete. FLOWT flags figures that don&apos;t appear in your source, but you must check every fact, name, date and claim before publishing.</li>
           <li>Extracting text from a certificate or document does not verify that the document is authentic.</li>
           <li>When you use AI features, the content you submit is processed by third-party AI providers as described in our <Link href="/privacy">Privacy Policy</Link>.</li>
           <li>We do not promise that text will be undetectable as AI-assisted.</li>
@@ -78,7 +78,7 @@ export default function TermsPage() {
       </section>
       <section>
         <h2>6. Acceptable use</h2>
-        <p>You must not use Verdant to:</p>
+        <p>You must not use FLOWT to:</p>
         <ul>
           <li>publish unlawful, defamatory, harassing, hateful, sexually exploitative or deceptive content, or misinformation intended to mislead;</li>
           <li>impersonate others, make false claims about qualifications or achievements, or forge or misrepresent documents;</li>
@@ -98,7 +98,7 @@ export default function TermsPage() {
       <section>
         <h2>8. Availability and changes</h2>
         <p>
-          We work to keep Verdant reliable, but the service is provided &quot;as is&quot; and &quot;as available&quot;. Scheduled posts can be delayed or fail for reasons outside our control (for
+          We work to keep FLOWT reliable, but the service is provided &quot;as is&quot; and &quot;as available&quot;. Scheduled posts can be delayed or fail for reasons outside our control (for
           example platform outages, revoked permissions or expired connections). We show the outcome of every publishing attempt in your history and never mark a post as published unless the
           platform confirms it.
         </p>

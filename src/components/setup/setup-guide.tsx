@@ -27,7 +27,7 @@ export interface SetupGuideProps {
 
 const STEPS: Record<StepId, { title: string; text: string; href: string; cta: string; how: string[]; optional?: boolean }> = {
   brand: {
-    title: "Tell Verdant how you write",
+    title: "Tell FLOWT how you write",
     text: "Who you write for, your tone and a few past posts, so AI drafts sound like you.",
     href: "/brand",
     cta: "Set up brand voice",

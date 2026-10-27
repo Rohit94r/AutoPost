@@ -33,7 +33,7 @@ Set `LEGAL_ENTITY_NAME`, `SUPPORT_EMAIL` and `LEGAL_JURISDICTION` so the legal p
 | Telegram | Bot token + channel | Text, photo, video | No | No | No | Bot must be a channel admin |
 | Discord | Channel webhook | Text, files | No | No | No | Webhooks can't read messages |
 | WordPress | Application password | Blog post + featured image | Yes | No | No | HTTPS site with REST API enabled |
-| Custom website | Signed webhook | JSON payload | No | No | No | Verify `X-Verdant-Signature` on your server |
+| Custom website | Signed webhook | JSON payload | No | No | No | Verify `X-FLOWT-Signature` on your server |
 
 The app shows these same capabilities on the Accounts page, so users always know what will and won't work.
 
@@ -96,7 +96,7 @@ No server setup. Users connect from **Accounts** with:
 - **Telegram**: bot token from @BotFather + channel (`@name` or `-100…`). The bot must be a channel admin.
 - **Discord**: channel webhook URL (Channel settings → Integrations → Webhooks).
 - **WordPress**: site URL + username + **Application Password** (Users → Profile).
-- **Custom website**: an HTTPS endpoint. Verdant sends `POST` JSON with headers `X-Verdant-Timestamp` and `X-Verdant-Signature: sha256=HMAC(secret, "<timestamp>.<body>")`.
+- **Custom website**: an HTTPS endpoint. FLOWT sends `POST` JSON with headers `X-FLOWT-Timestamp` and `X-FLOWT-Signature: sha256=HMAC(secret, "<timestamp>.<body>")`.
 
 User-supplied hosts (Mastodon instances, WordPress sites, webhooks, self-hosted Bluesky) must be public HTTPS. Private and loopback addresses are blocked (SSRF protection).
 

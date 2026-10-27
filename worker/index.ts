@@ -1,5 +1,5 @@
 /**
- * Verdant background worker — a persistent Node process (never a serverless function).
+ * FLOWT background worker — a persistent Node process (never a serverless function).
  *
  *   publish      executes publishing jobs (delayed BullMQ jobs + sweeper recovery)
  *   documents    document extraction (PDF text / Gemini OCR / vision)
@@ -7,7 +7,7 @@
  *
  * Postgres is the source of truth; BullMQ only provides timely delivery.
  */
-process.env.VERDANT_SERVICE ??= "worker";
+process.env.FLOWT_SERVICE ??= "worker";
 
 import { hostname } from "node:os";
 import { Queue, Worker, type Job } from "bullmq";

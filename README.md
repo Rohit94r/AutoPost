@@ -1,8 +1,8 @@
-# Verdant — AI-powered multi-platform social publishing
+# FLOWT — AI-powered multi-platform social publishing
 
 > **Create once → Understand the source → Generate → Customize per platform → Review → Publish or schedule → Track results.**
 
-Verdant is a SaaS workspace where creators, student communities, founders, freelancers, marketing teams and agencies can turn an idea **or an uploaded document** (certificate, internship letter, event poster, competition result, project summary…) into accurate, natural posts, then adapt, preview, publish and schedule them to **15 platforms** (LinkedIn, Instagram, X, Facebook Pages, Threads, YouTube, TikTok, Pinterest, Reddit, Bluesky, Mastodon, Telegram, Discord, WordPress and any custom website) through official APIs. Every comment and mention then lands in **one inbox**, where you reply by hand or let **Autopilot** answer in your voice.
+FLOWT is a SaaS workspace where creators, student communities, founders, freelancers, marketing teams and agencies can turn an idea **or an uploaded document** (certificate, internship letter, event poster, competition result, project summary…) into accurate, natural posts, then adapt, preview, publish and schedule them to **15 platforms** (LinkedIn, Instagram, X, Facebook Pages, Threads, YouTube, TikTok, Pinterest, Reddit, Bluesky, Mastodon, Telegram, Discord, WordPress and any custom website) through official APIs. Every comment and mention then lands in **one inbox**, where you reply by hand or let **Autopilot** answer in your voice.
 
 It is built as a real product, not a UI demo: PostgreSQL persistence, server-side sessions, encrypted OAuth credentials, Groq + Gemini AI adapters, document extraction with human review, a durable Redis/BullMQ publishing engine with idempotency and partial-success handling, honest analytics, quotas, audit logs and deployment docs.
 

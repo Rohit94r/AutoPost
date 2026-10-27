@@ -32,7 +32,7 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 const NEXT_STEP: Record<string, string> = {
-  brand: "tell Verdant how you write",
+  brand: "tell FLOWT how you write",
   apps: "connect your apps",
   post: "create your first post",
   publish: "publish or schedule it",

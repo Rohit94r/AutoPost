@@ -364,7 +364,7 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
                   <ImagePlus /> Create an AI image
                 </Button>
               </div>
-              {canReadFiles && <p className="mt-2 text-xs text-stone">Upload a certificate, poster, letter or project summary: Verdant reads it and writes the post for every platform. Check the details before you publish.</p>}
+              {canReadFiles && <p className="mt-2 text-xs text-stone">Upload a certificate, poster, letter or project summary: FLOWT reads it and writes the post for every platform. Check the details before you publish.</p>}
               <input ref={fileInput} type="file" hidden accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => {
                 const f = e.target.files?.[0];
                 e.target.value = "";

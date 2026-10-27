@@ -18,7 +18,7 @@ const GB = 1024 ** 3;
 export const PLANS: Record<PlanId, { name: string; description: string; limits: PlanLimits }> = {
   free: {
     name: "Free",
-    description: "For trying Verdant with a couple of accounts.",
+    description: "For trying FLOWT with a couple of accounts.",
     limits: {
       aiRequestsPerMonth: 150,
       documentsPerMonth: 15,

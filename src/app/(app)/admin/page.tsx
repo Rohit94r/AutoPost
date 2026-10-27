@@ -41,7 +41,7 @@ export default async function AdminPage() {
               <tbody>
                 {Object.entries(o.queues).map(([q, c]) => (
                   <tr key={q} className="border-t border-white/6">
-                    <td className="py-1.5 text-mist">{q.replace("verdant-", "")}</td>
+                    <td className="py-1.5 text-mist">{q.replace("flowt-", "")}</td>
                     {["waiting", "active", "delayed", "failed"].map((h) => (
                       <td key={h} className="text-right tabular-nums text-white">
                         {c[h] ?? 0}

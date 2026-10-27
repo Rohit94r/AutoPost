@@ -2572,7 +2572,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'verdant'"
+          "default": "'flowt'"
         },
         "text": {
           "name": "text",

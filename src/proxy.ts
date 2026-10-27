@@ -25,7 +25,7 @@ const APP_PREFIXES = [
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const hasSession = Boolean(getSessionCookie(req, { cookiePrefix: "verdant" }));
+  const hasSession = Boolean(getSessionCookie(req, { cookiePrefix: "flowt" }));
   if (APP_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`)) && !hasSession) {
     const url = new URL("/sign-in", req.url);
     url.searchParams.set("next", pathname);

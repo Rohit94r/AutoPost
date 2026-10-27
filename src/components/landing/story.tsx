@@ -17,13 +17,13 @@ const CHAPTERS = [
   },
   {
     kicker: "4:12 pm",
-    title: "She drops the certificate into Verdant.",
-    body: "Verdant reads it, scanned PDF or phone photo, and pulls out the facts: the event, the award, the date, the organiser. Each one comes with the exact line it was read from.",
+    title: "She drops the certificate into FLOWT.",
+    body: "FLOWT reads it, scanned PDF or phone photo, and pulls out the facts: the event, the award, the date, the organiser. Each one comes with the exact line it was read from.",
   },
   {
     kicker: "4:13 pm",
     title: "She checks every fact.",
-    body: "The date was blurry, so she fixes it. Nothing she hasn't confirmed can end up in a post. Verdant never claims the certificate is genuine just because it read it.",
+    body: "The date was blurry, so she fixes it. Nothing she hasn't confirmed can end up in a post. FLOWT never claims the certificate is genuine just because it read it.",
   },
   {
     kicker: "4:15 pm",
@@ -32,7 +32,7 @@ const CHAPTERS = [
   },
   {
     kicker: "4:16 pm",
-    title: "She picks a time. Verdant does the rest.",
+    title: "She picks a time. FLOWT does the rest.",
     body: "Scheduled for tomorrow, 9:30 IST, on every account she chose. Each one is tracked separately, so one failure never blocks the others, and nothing is ever posted twice.",
   },
   {

@@ -1,6 +1,6 @@
 # Deployment
 
-Verdant runs in one of two background modes:
+FLOWT runs in one of two background modes:
 
 - **cron** (Vercel and other serverless hosts): no extra process. "Publish now" and document reading run right after the request; scheduled posts, comment sync, autopilot, analytics and token refresh run from `/api/cron/tick`, which a scheduler calls every minute. This is the default on Vercel.
 - **worker** (VPS, Render, Railway, Fly): a long-running `pnpm worker:prod` process with Redis (BullMQ). The default when `REDIS_URL` is set and the app isn't on Vercel.
@@ -10,10 +10,10 @@ Force a mode with `BACKGROUND_MODE=cron|worker`. Both need Postgres and, in prod
 ## Option A: one VPS or VM (Docker)
 
 ```bash
-docker build -t verdant .
-docker run -d --name verdant-web    --env-file .env.production -p 3000:3000 verdant
-docker run -d --name verdant-worker --env-file .env.production verdant pnpm worker:prod
-docker run --rm --env-file .env.production verdant pnpm db:migrate   # before each release
+docker build -t flowt .
+docker run -d --name flowt-web    --env-file .env.production -p 3000:3000 flowt
+docker run -d --name flowt-worker --env-file .env.production flowt pnpm worker:prod
+docker run --rm --env-file .env.production flowt pnpm db:migrate   # before each release
 ```
 
 Put Caddy or Nginx in front for HTTPS. Use managed Postgres and Redis, or the services in `docker-compose.yml` with volumes and backups.

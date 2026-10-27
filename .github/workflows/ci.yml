@@ -42,17 +42,17 @@ jobs:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_USER: verdant
-          POSTGRES_PASSWORD: verdant
-          POSTGRES_DB: verdant
+          POSTGRES_USER: flowt
+          POSTGRES_PASSWORD: flowt
+          POSTGRES_DB: flowt
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U verdant" --health-interval 5s --health-retries 10
+          --health-cmd "pg_isready -U flowt" --health-interval 5s --health-retries 10
       redis:
         image: redis:7-alpine
         ports: ["6379:6379"]
     env:
-      DATABASE_URL: postgres://verdant:verdant@localhost:5432/verdant
+      DATABASE_URL: postgres://flowt:flowt@localhost:5432/flowt
       REDIS_URL: redis://localhost:6379
       APP_BASE_URL: http://localhost:3000
       BETTER_AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret-0000

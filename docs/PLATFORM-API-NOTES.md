@@ -8,7 +8,7 @@ Items marked *unverified* were not confirmed in official docs; the code treats t
 ## LinkedIn (learn.microsoft.com/linkedin)
 
 - Authorize `https://www.linkedin.com/oauth/v2/authorization`; token `POST https://www.linkedin.com/oauth/v2/accessToken` (form). Code valid 30 min. Access token 60 days.
-- **Refresh tokens only for a limited set of partners.** Others must re-authorize (consent screen is skipped while the member is logged in). Verdant shows "Expires in N days → Reconnect".
+- **Refresh tokens only for a limited set of partners.** Others must re-authorize (consent screen is skipped while the member is logged in). FLOWT shows "Expires in N days → Reconnect".
 - Scopes: `openid profile email` (Sign In with LinkedIn using OpenID Connect) + `w_member_social` (Share on LinkedIn). Organization posting: `w_organization_social` from the **Community Management API** (vetted; Standard tier requires screencast review; must be requested on an app with no other products).
 - No documented revoke endpoint. Token introspection: `POST https://www.linkedin.com/oauth/v2/introspectToken`.
 - `GET https://api.linkedin.com/v2/userinfo` → `sub` → author `urn:li:person:{sub}`.
@@ -17,7 +17,7 @@ Items marked *unverified* were not confirmed in official docs; the code treats t
 - `commentary` uses "little" text format: reserved characters `| { } @ [ ] ( ) < > # \ * _ ~` must be backslash-escaped.
 - Images: `POST /rest/images?action=initializeUpload` → `{value:{uploadUrl,image}}` → PUT bytes. JPG/GIF/PNG.
 - Videos: `POST /rest/videos?action=initializeUpload` (fileSizeBytes) → PUT byte ranges, collect `etag` headers → `POST /rest/videos?action=finalizeUpload` → poll `GET /rest/videos/{urn}` until `AVAILABLE`. MP4, 3 s–30 min, 75 KB–500 MB.
-- Member post analytics: `GET /rest/memberCreatorPostAnalytics` needs `r_member_postAnalytics` (Community Management API). Without it, Verdant shows LinkedIn engagement as *permission missing*.
+- Member post analytics: `GET /rest/memberCreatorPostAnalytics` needs `r_member_postAnalytics` (Community Management API). Without it, FLOWT shows LinkedIn engagement as *permission missing*.
 - Rate limit (Share): 150 requests / member / day.
 
 ## Instagram API with Instagram Login (developers.facebook.com/docs/instagram-platform)

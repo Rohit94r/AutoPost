@@ -11,7 +11,7 @@ export default async function DataDeletionPage({ searchParams }: { searchParams:
   const status = code ? await deletionStatus(code).catch(() => null) : null;
   const contact = contactLine(e.SUPPORT_EMAIL, e.LEGAL_ENTITY_NAME);
   return (
-    <LegalPage title="Data deletion" intro="How to delete the data Verdant holds about you, including data received from Instagram, LinkedIn and X.">
+    <LegalPage title="Data deletion" intro="How to delete the data FLOWT holds about you, including data received from Instagram, LinkedIn and X.">
       {code && (
         <section className="rounded-xl border border-white/10 bg-black/25 p-4">
           <h2>Request status</h2>
@@ -28,7 +28,7 @@ export default async function DataDeletionPage({ searchParams }: { searchParams:
         </section>
       )}
       <section>
-        <h2>Delete everything (your Verdant account)</h2>
+        <h2>Delete everything (your FLOWT account)</h2>
         <ul>
           <li>Sign in and open Settings → Account &amp; security → Delete my account.</li>
           <li>This permanently deletes your user, the workspaces you solely own, uploaded files, content, publishing history and every connected account&apos;s tokens.</li>
@@ -38,7 +38,7 @@ export default async function DataDeletionPage({ searchParams }: { searchParams:
       <section>
         <h2>Disconnect a single social account</h2>
         <ul>
-          <li>Open Accounts in Verdant and choose Disconnect. Stored tokens are deleted immediately and revoked where the platform supports it.</li>
+          <li>Open Accounts in FLOWT and choose Disconnect. Stored tokens are deleted immediately and revoked where the platform supports it.</li>
           <li>
             Or remove access from the platform: Instagram → Settings → Apps and websites; LinkedIn → Settings → Data privacy → Permitted services; X → Settings → Security and account access → Apps and
             sessions.
@@ -48,7 +48,7 @@ export default async function DataDeletionPage({ searchParams }: { searchParams:
       <section>
         <h2>Instagram (Meta) deletion requests</h2>
         <p>
-          If you remove Verdant from your Instagram settings and request data deletion, Meta notifies us automatically. We then delete everything we received from that Instagram account and
+          If you remove FLOWT from your Instagram settings and request data deletion, Meta notifies us automatically. We then delete everything we received from that Instagram account and
           give you a confirmation code. You can check its status on this page.
         </p>
       </section>

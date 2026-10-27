@@ -42,7 +42,7 @@ Safety rules applied to every rule:
 
 ## App pages (sidebar → Apps ▾ → `/channels/<platform>`)
 
-Account stats (followers etc., refreshed every 6 h), totals (posts, comments, likes, views, shares), a 30-day posting chart, delivery success through Verdant, autopilot status, and every known post with its latest metrics. Below that is the app's own comment inbox: reply there and it posts on the platform. Each post's comment count filters the comments to that post (`?post=<id>`); **Check for new** syncs only that app.
+Account stats (followers etc., refreshed every 6 h), totals (posts, comments, likes, views, shares), a 30-day posting chart, delivery success through FLOWT, autopilot status, and every known post with its latest metrics. Below that is the app's own comment inbox: reply there and it posts on the platform. Each post's comment count filters the comments to that post (`?post=<id>`); **Check for new** syncs only that app.
 
 ## Costs to keep in mind
 

@@ -79,7 +79,7 @@ export function SecuritySettings({ email, hasPassword, currentToken }: { email: 
           </form>
         </GlassCard>
       ) : (
-        <Notice tone="info">You sign in with Google, so there&apos;s no Verdant password to manage.</Notice>
+        <Notice tone="info">You sign in with Google, so there&apos;s no FLOWT password to manage.</Notice>
       )}
 
       <GlassCard>

@@ -175,7 +175,7 @@ export function AppShell({ user, workspace, memberships, isAdmin, channels, setu
         <div className="px-5 pb-4 pt-5">
           <Link href="/dashboard" className="flex items-center gap-2.5 text-white">
             <LogoMark />
-            <span className="font-display text-2xl">Verdant</span>
+            <span className="font-display text-2xl">FLOWT</span>
           </Link>
         </div>
         <div className="px-3 pb-4">
@@ -197,7 +197,7 @@ export function AppShell({ user, workspace, memberships, isAdmin, channels, setu
           <aside className="glass-strong absolute inset-y-2 left-2 flex w-72 flex-col rounded-3xl!">
             <div className="flex items-center justify-between px-5 py-4">
               <span className="flex items-center gap-2 text-white">
-                <LogoMark /> <span className="font-display text-2xl">Verdant</span>
+                <LogoMark /> <span className="font-display text-2xl">FLOWT</span>
               </span>
               <button aria-label="Close menu" onClick={() => setOpen(false)} className="rounded-lg p-1 text-fog">
                 <X className="size-5" />

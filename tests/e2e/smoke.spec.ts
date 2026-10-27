@@ -41,7 +41,7 @@ test("sign up → onboarding → Get started → save a draft → find it in his
   await expect(page).toHaveURL(/\/onboarding/, { timeout: 30_000 });
   await page.getByRole("button", { name: /continue/i }).click();
   await page.getByRole("button", { name: /continue/i }).click();
-  await page.getByRole("button", { name: /enter verdant/i }).click();
+  await page.getByRole("button", { name: /enter flowt/i }).click();
   await expect(page).toHaveURL(/\/setup/, { timeout: 30_000 });
   await expect(page.getByRole("heading", { name: /get you posting/i })).toBeVisible();
 

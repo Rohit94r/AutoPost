@@ -44,7 +44,7 @@ const schema = z.object({
   GOOGLE_CLIENT_ID: optional,
   GOOGLE_CLIENT_SECRET: optional,
   RESEND_API_KEY: optional,
-  EMAIL_FROM: z.string().default("Verdant <no-reply@localhost>"),
+  EMAIL_FROM: z.string().default("FLOWT <no-reply@localhost>"),
   REQUIRE_EMAIL_VERIFICATION: bool(false),
 
   GROQ_API_KEY: optional,
@@ -122,7 +122,7 @@ const schema = z.object({
   DOCUMENT_RETENTION_DAYS: int(30),
 
   // Shown on Terms / Privacy pages and in app-review submissions.
-  LEGAL_ENTITY_NAME: z.string().default("Verdant"),
+  LEGAL_ENTITY_NAME: z.string().default("FLOWT"),
   SUPPORT_EMAIL: z.string().email().optional().or(z.literal("").transform(() => undefined)),
   LEGAL_JURISDICTION: z.string().default("the jurisdiction where the operator is established"),
   ADMIN_EMAILS: z

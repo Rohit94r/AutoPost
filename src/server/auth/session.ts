@@ -12,7 +12,7 @@ import {
   type Role,
 } from "@/server/workspaces/service";
 
-export const WORKSPACE_COOKIE = "verdant_ws";
+export const WORKSPACE_COOKIE = "flowt_ws";
 
 export const getSession = cache(async () => {
   return getAuth().api.getSession({ headers: await headers() });

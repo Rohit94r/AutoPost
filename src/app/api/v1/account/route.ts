@@ -10,6 +10,6 @@ export const DELETE = apiRoute({ role: "viewer" }, async ({ req, user }) => {
   if (confirmEmail.trim().toLowerCase() !== user.email.toLowerCase()) throw badRequest("Type your account email exactly to confirm.");
   await deleteUserAccount(user.id, req);
   const res = NextResponse.json({ ok: true });
-  for (const c of req.cookies.getAll()) if (c.name.startsWith("verdant")) res.cookies.delete(c.name);
+  for (const c of req.cookies.getAll()) if (c.name.startsWith("flowt")) res.cookies.delete(c.name);
   return res;
 });

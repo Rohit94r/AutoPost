@@ -7,6 +7,6 @@ export const GET = apiRoute({ role: "admin" }, async ({ req, user, workspace, co
   const data = await exportWorkspace(workspace.id);
   await audit({ workspaceId: workspace.id, actorUserId: user.id, action: "workspace.exported", req, correlationId });
   return new NextResponse(JSON.stringify(data, null, 2), {
-    headers: { "Content-Type": "application/json", "Content-Disposition": `attachment; filename="verdant-export-${new Date().toISOString().slice(0, 10)}.json"` },
+    headers: { "Content-Type": "application/json", "Content-Disposition": `attachment; filename="flowt-export-${new Date().toISOString().slice(0, 10)}.json"` },
   });
 });

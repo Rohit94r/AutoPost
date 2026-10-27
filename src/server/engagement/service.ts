@@ -243,7 +243,7 @@ async function postReply(item: ItemRow, account: AccountRow, text: string) {
 /** Manual reply from the web inbox — sent to the platform immediately. */
 export async function replyToItem(ctx: { workspaceId: string; userId: string; req?: Request }, id: string, text: string) {
   const { item, account } = await loadItem(ctx.workspaceId, id);
-  if (item.status === "replied") throw conflict("This comment already has a reply from Verdant.");
+  if (item.status === "replied") throw conflict("This comment already has a reply from FLOWT.");
   const trimmed = text.trim();
   if (!trimmed) throw badRequest("Write a reply first.");
   try {

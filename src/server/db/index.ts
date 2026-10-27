@@ -11,17 +11,17 @@ export type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 export type DbOrTx = Database | Tx;
 export { schema };
 
-const globalForDb = globalThis as unknown as { __verdantDb?: Database; __verdantSql?: postgres.Sql };
+const globalForDb = globalThis as unknown as { __flowtDb?: Database; __flowtSql?: postgres.Sql };
 let override: Database | undefined;
 
 function createDb(): Database {
-  if (globalForDb.__verdantDb) return globalForDb.__verdantDb;
+  if (globalForDb.__flowtDb) return globalForDb.__flowtDb;
   // Serverless (Vercel) runs many small instances: keep each pool small and use the pooled Neon URL.
   const { url, options } = pgConnection(env().DATABASE_URL, { max: Number(process.env.DATABASE_POOL_SIZE || (process.env.VERCEL ? 5 : 10)) });
   const sql = postgres(url, options);
   const db = drizzle(sql, { schema }) as unknown as Database;
-  globalForDb.__verdantDb = db;
-  globalForDb.__verdantSql = sql;
+  globalForDb.__flowtDb = db;
+  globalForDb.__flowtSql = sql;
   return db;
 }
 
@@ -44,7 +44,7 @@ export function setDbForTesting(testDb: Database | undefined) {
 }
 
 export async function closeDb() {
-  await globalForDb.__verdantSql?.end({ timeout: 5 });
-  globalForDb.__verdantDb = undefined;
-  globalForDb.__verdantSql = undefined;
+  await globalForDb.__flowtSql?.end({ timeout: 5 });
+  globalForDb.__flowtDb = undefined;
+  globalForDb.__flowtSql = undefined;
 }

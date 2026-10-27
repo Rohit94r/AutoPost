@@ -5,7 +5,7 @@ export default defineConfig({
   schema: "./src/server/db/schema/index.ts",
   out: "./drizzle",
   dialect: "postgresql",
-  dbCredentials: { url: withoutClientParams(migrationUrl() ?? "postgres://verdant:verdant@localhost:5432/verdant") },
+  dbCredentials: { url: withoutClientParams(migrationUrl() ?? "postgres://flowt:flowt@localhost:5432/flowt") },
   strict: true,
   verbose: true,
 });

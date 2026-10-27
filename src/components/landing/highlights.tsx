@@ -9,7 +9,7 @@ const TILES = [
   { img: "/images/app-forest.webp", kicker: "Inbox", title: "Every comment, from every platform, in one place.", tone: "from-black/75" },
   { img: "/images/golden-valley.webp", kicker: "Autopilot", title: "Replies in your voice, even while you sleep.", tone: "from-black/70" },
   { img: "/images/cta-bridge.webp", kicker: "Analytics", title: "Real numbers from the platforms, never invented.", tone: "from-black/75" },
-  { img: "/images/auth-hills.webp", kicker: "Privacy", title: "Your passwords never touch Verdant.", tone: "from-black/70" },
+  { img: "/images/auth-hills.webp", kicker: "Privacy", title: "Your passwords never touch FLOWT.", tone: "from-black/70" },
 ];
 
 /** "Get the highlights" — a snap-scrolling row of large tiles. */

@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Verdant — create once, publish everywhere", template: "%s · Verdant" },
+  title: { default: "FLOWT — create once, publish everywhere", template: "%s · FLOWT" },
   description:
     "Turn ideas and documents into accurate, natural posts for LinkedIn, Instagram and X. Review, schedule and publish through official APIs.",
 };

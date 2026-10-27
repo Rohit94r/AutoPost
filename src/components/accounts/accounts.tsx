@@ -122,7 +122,7 @@ export function Accounts({ accounts, platforms: allPlatforms, canManage, baseUrl
   return (
     <div className="space-y-8">
       <p className="text-sm text-fog">
-        {connectedCount} account{connectedCount === 1 ? "" : "s"} connected. Each platform uses its own official sign-in or token, so Verdant never sees your passwords.
+        {connectedCount} account{connectedCount === 1 ? "" : "s"} connected. Each platform uses its own official sign-in or token, so FLOWT never sees your passwords.
       </p>
       {GROUPS.map((g) => {
         const list = platforms.filter((p) => PLATFORM_META[p.platform].group === g.id);

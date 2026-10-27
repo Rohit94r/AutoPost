@@ -129,13 +129,13 @@ export default async function AppPage({ params, searchParams }: { params: Promis
 
           <div className="mt-4 grid gap-4 lg:grid-cols-3">
             <GlassCard className="lg:col-span-2">
-              <CardTitle icon={<BarChart3 />} description={`Posts on ${meta.label} per day (published with Verdant or imported), last ${DAYS} days`}>
+              <CardTitle icon={<BarChart3 />} description={`Posts on ${meta.label} per day (published with FLOWT or imported), last ${DAYS} days`}>
                 Publishing
               </CardTitle>
               <PublishedChart series={series} days={DAYS} end={to.toISOString()} />
             </GlassCard>
             <GlassCard>
-              <CardTitle description={`Publishing through Verdant, last ${DAYS} days`}>Delivery</CardTitle>
+              <CardTitle description={`Publishing through FLOWT, last ${DAYS} days`}>Delivery</CardTitle>
               <ul className="space-y-3 text-sm">
                 <li className="flex items-center justify-between">
                   <span className="inline-flex items-center gap-2 text-fog">
@@ -171,7 +171,7 @@ export default async function AppPage({ params, searchParams }: { params: Promis
           </div>
 
           <GlassCard className="mt-4">
-            <CardTitle icon={<Users />} description={meta.can.importPosts ? "Posts made in Verdant plus recent posts imported from the platform." : "Posts published through Verdant."}>
+            <CardTitle icon={<Users />} description={meta.can.importPosts ? "Posts made in FLOWT plus recent posts imported from the platform." : "Posts published through FLOWT."}>
               Posts
             </CardTitle>
             {posts.length === 0 ? (
@@ -191,7 +191,7 @@ export default async function AppPage({ params, searchParams }: { params: Promis
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-2 text-sm text-mist">{p.text || "(no caption)"}</p>
                       <p className="mt-1 text-[11px] text-stone">
-                        {timeAgo(p.publishedAt)} · {p.source === "imported" ? "from platform" : "via Verdant"}
+                        {timeAgo(p.publishedAt)} · {p.source === "imported" ? "from platform" : "via FLOWT"}
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fog">
                         {Object.entries(p.metrics).map(([k, v]) => (

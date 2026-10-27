@@ -26,9 +26,9 @@ describe("pgConnection", () => {
     expect(pgConnection("postgres://u:p@db.example.com/app?sslmode=require").options.ssl).toBe("require");
     expect(pgConnection("postgres://u:p@localhost:5433/postgres").options.ssl).toBe(false);
     expect(pgConnection("postgres://u:p@db.example.com/app?sslmode=verify-ca").options.ssl).toBe("verify-full");
-    const c = pgConnection("postgres://u:p@db.example.com/app?pgbouncer=true&application_name=verdant");
+    const c = pgConnection("postgres://u:p@db.example.com/app?pgbouncer=true&application_name=flowt");
     expect(c.pooled).toBe(true);
-    expect(c.url).toContain("application_name=verdant");
+    expect(c.url).toContain("application_name=flowt");
     expect(c.url).not.toContain("pgbouncer");
   });
 

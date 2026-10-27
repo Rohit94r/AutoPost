@@ -32,7 +32,7 @@ export class RedditAdapter extends BaseAdapter {
 
   private get cfg() {
     const e = env();
-    return { id: e.REDDIT_CLIENT_ID, secret: e.REDDIT_CLIENT_SECRET, ua: `web:verdant:${process.env.npm_package_version ?? "1.0"} (by /u/${e.REDDIT_USERNAME ?? "verdant"})` };
+    return { id: e.REDDIT_CLIENT_ID, secret: e.REDDIT_CLIENT_SECRET, ua: `web:flowt:${process.env.npm_package_version ?? "1.0"} (by /u/${e.REDDIT_USERNAME ?? "flowt"})` };
   }
   override isConfigured() {
     return Boolean(this.cfg.id && this.cfg.secret);

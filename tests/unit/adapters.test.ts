@@ -135,7 +135,7 @@ describe("Instagram adapter", () => {
 });
 
 describe("X adapter", () => {
-  const xAccount = { externalAccountId: "99", accountType: "user", username: "verdant", metadata: {} };
+  const xAccount = { externalAccountId: "99", accountType: "user", username: "flowt", metadata: {} };
 
   it("builds a PKCE authorize URL", () => {
     const url = new URL(new XAdapter().buildAuthorizeUrl({ state: "s", redirectUri: "http://localhost:3000/cb", codeChallenge: "abc" }));
@@ -147,7 +147,7 @@ describe("X adapter", () => {
   it("creates a post and builds the URL", async () => {
     const calls = mockFetch([(c) => (c.url.endsWith("/2/tweets") ? json({ data: { id: "1001", text: "hi" } }, 201) : undefined)]);
     const res = await new XAdapter().publish({ accessToken: "t", account: xAccount, text: "hi", media: [] });
-    expect(res.url).toBe("https://x.com/verdant/status/1001");
+    expect(res.url).toBe("https://x.com/flowt/status/1001");
     expect(JSON.parse(calls[0]!.init.body as string)).toEqual({ text: "hi" });
   });
 

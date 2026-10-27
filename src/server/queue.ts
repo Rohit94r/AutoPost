@@ -6,10 +6,10 @@ import { logger } from "@/server/logger";
 import { getRedis } from "@/server/redis";
 
 export const QUEUES = {
-  publish: "verdant-publish",
-  documents: "verdant-documents",
-  analytics: "verdant-analytics",
-  maintenance: "verdant-maintenance",
+  publish: "flowt-publish",
+  documents: "flowt-documents",
+  analytics: "flowt-analytics",
+  maintenance: "flowt-maintenance",
 } as const;
 
 export interface PublishJobData {
@@ -23,19 +23,19 @@ export interface DocumentJobData {
   correlationId: string;
 }
 
-const g = globalThis as unknown as { __verdantQueues?: Map<string, Queue> };
+const g = globalThis as unknown as { __flowtQueues?: Map<string, Queue> };
 
 function queue(name: string): Queue | null {
   const connection = getRedis();
   if (!connection) return null;
-  g.__verdantQueues ??= new Map();
-  let q = g.__verdantQueues.get(name);
+  g.__flowtQueues ??= new Map();
+  let q = g.__flowtQueues.get(name);
   if (!q) {
     q = new Queue(name, {
       connection,
       defaultJobOptions: { removeOnComplete: { age: 7 * 86400, count: 5000 }, removeOnFail: { age: 30 * 86400 } },
     });
-    g.__verdantQueues.set(name, q);
+    g.__flowtQueues.set(name, q);
   }
   return q;
 }

@@ -122,7 +122,7 @@ export interface PlatformAdapter {
   fetchMentions?(input: { accessToken: string; account: PublishInput["account"]; since?: Date | null }): Promise<EngagementInput[]>;
   /** Reply to a comment or mention. Returns the platform id of the reply. */
   reply?(input: ReplyInput): Promise<{ externalId: string; url?: string | null }>;
-  /** Recent posts on the account (including ones not published through Verdant). */
+  /** Recent posts on the account (including ones not published through FLOWT). */
   fetchRecentPosts?(input: { accessToken: string; account: PublishInput["account"]; limit: number }): Promise<RemotePost[]>;
   /** Account-level numbers such as followers. */
   fetchAccountStats?(input: { accessToken: string; account: PublishInput["account"] }): Promise<AccountStats>;
