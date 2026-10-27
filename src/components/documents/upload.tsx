@@ -3,7 +3,8 @@ import { FileUp, ShieldCheck } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { api, errorMessage } from "@/lib/api-client";
+import { errorMessage } from "@/lib/api-client";
+import { uploadFile } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 
 export function DocumentUpload({ maxMb, retentionDays, aiReady, onUploaded }: { maxMb: number; retentionDays: number; aiReady: boolean; onUploaded: (id: string) => void }) {
@@ -15,11 +16,8 @@ export function DocumentUpload({ maxMb, retentionDays, aiReady, onUploaded }: { 
   async function upload(file: File) {
     if (!consent) return toast.error("Please confirm AI processing first.");
     setBusy(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("consent", "true");
     try {
-      const r = await api<{ document: { id: string } }>("/documents", { method: "POST", body: fd });
+      const r = await uploadFile<{ document: { id: string } }>(file, "document", { consent: true });
       toast.success("Uploaded. Extracting facts now.");
       onUploaded(r.document.id);
     } catch (err) {

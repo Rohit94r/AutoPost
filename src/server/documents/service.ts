@@ -223,7 +223,7 @@ export async function listDocuments(workspaceId: string) {
 export async function getDocumentFile(workspaceId: string, id: string) {
   const doc = await getDocumentRow(workspaceId, id);
   if (!doc.storageKey || doc.fileDeletedAt) throw notFound("Document file");
-  return { data: await storage().get(doc.storageKey), mime: doc.mimeType, name: doc.originalFilename };
+  return { ...(await storage().stream(doc.storageKey)), mime: doc.mimeType, name: doc.originalFilename };
 }
 
 export const reviewInput = z.object({

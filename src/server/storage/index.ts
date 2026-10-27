@@ -1,10 +1,13 @@
 import "server-only";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { Readable } from "node:stream";
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { sign, verifySignature } from "@/server/crypto";
-import { env } from "@/server/env";
+import { env, storageProblem } from "@/server/env";
+import { AppError } from "@/server/errors";
 
 /**
  * Private object storage. Objects are never public by default; access goes through
@@ -16,6 +19,15 @@ export interface StorageDriver {
   delete(key: string): Promise<void>;
   /** A URL an external platform (e.g. Instagram) can fetch for `ttlSec` seconds. */
   publicUrl(key: string, ttlSec: number): Promise<string>;
+  /** Streamed read: serverless hosts cap buffered responses (Vercel: 4.5 MB), streams aren't capped. */
+  stream(key: string): Promise<{ body: ReadableStream<Uint8Array>; size: number | null }>;
+  /** Object size in bytes, or null if it doesn't exist. */
+  size(key: string): Promise<number | null>;
+  /**
+   * Browser-to-storage upload URL (PUT), so large files skip the app server's request-size limit.
+   * Null when the driver can't do it (local disk): the browser then posts the file to the app.
+   */
+  directUploadUrl(key: string, contentType: string, ttlSec: number): Promise<string | null>;
 }
 
 class LocalStorage implements StorageDriver {
@@ -39,6 +51,20 @@ class LocalStorage implements StorageDriver {
 
   async delete(key: string) {
     await rm(this.resolve(key), { force: true });
+  }
+
+  async stream(key: string) {
+    const full = this.resolve(key);
+    const { size } = await stat(full);
+    return { body: Readable.toWeb(createReadStream(full)) as ReadableStream<Uint8Array>, size };
+  }
+
+  async size(key: string) {
+    return stat(this.resolve(key)).then((s) => s.size, () => null);
+  }
+
+  async directUploadUrl() {
+    return null;
   }
 
   async publicUrl(key: string, ttlSec: number) {
@@ -84,6 +110,24 @@ class S3Storage implements StorageDriver {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
+  async stream(key: string) {
+    const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    if (!res.Body) throw new Error("Empty object");
+    return { body: res.Body.transformToWebStream() as ReadableStream<Uint8Array>, size: res.ContentLength ?? null };
+  }
+
+  async size(key: string) {
+    try {
+      return (await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }))).ContentLength ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  directUploadUrl(key: string, contentType: string, ttlSec: number) {
+    return getSignedUrl(this.client, new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType }), { expiresIn: ttlSec });
+  }
+
   publicUrl(key: string, ttlSec: number) {
     return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.bucket, Key: key }), { expiresIn: ttlSec });
   }
@@ -94,9 +138,10 @@ let driver: StorageDriver | undefined;
 export function storage(): StorageDriver {
   if (driver) return driver;
   const e = env();
+  const problem = storageProblem();
+  if (problem) throw new AppError(503, "storage_not_configured", problem);
   if (e.STORAGE_DRIVER === "s3") {
-    if (!e.S3_BUCKET) throw new Error("S3_BUCKET is required when STORAGE_DRIVER=s3");
-    driver = new S3Storage(e.S3_BUCKET);
+    driver = new S3Storage(e.S3_BUCKET!);
   } else {
     driver = new LocalStorage(path.resolve(e.STORAGE_LOCAL_DIR));
   }
@@ -113,5 +158,5 @@ export function verifyLocalPublicUrl(key: string, exp: string, sig: string) {
   return verifySignature(`${key}:${exp}`, sig);
 }
 
-export const storageKey = (workspaceId: string, kind: "media" | "documents" | "thumbs", ext: string) =>
+export const storageKey = (workspaceId: string, kind: "media" | "documents" | "thumbs" | "uploads", ext: string) =>
   `${kind}/${workspaceId}/${crypto.randomUUID()}${ext ? `.${ext.replace(/^\./, "")}` : ""}`;

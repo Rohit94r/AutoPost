@@ -17,10 +17,10 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Not found", { status: 404 });
   }
   try {
-    const data = await storage().get(key);
+    const { body, size } = await storage().stream(key);
     const ext = key.split(".").pop()?.toLowerCase() ?? "";
-    return new NextResponse(new Uint8Array(data), {
-      headers: { "Content-Type": TYPES[ext] ?? "application/octet-stream", "Content-Length": String(data.length), "Cache-Control": "private, max-age=600" },
+    return new NextResponse(body, {
+      headers: { "Content-Type": TYPES[ext] ?? "application/octet-stream", ...(size !== null ? { "Content-Length": String(size) } : {}), "Cache-Control": "private, max-age=600" },
     });
   } catch {
     return new NextResponse("Not found", { status: 404 });

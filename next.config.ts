@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
 
+// Browsers upload large files straight to the storage bucket (see src/lib/upload.ts), so the
+// bucket's origin must be allowed for fetch. R2 and AWS S3 hosts, plus any custom S3_ENDPOINT.
+const storageOrigins = ["https://*.r2.cloudflarestorage.com", "https://*.amazonaws.com"];
+if (process.env.S3_ENDPOINT && URL.canParse(process.env.S3_ENDPOINT)) {
+  const u = new URL(process.env.S3_ENDPOINT);
+  storageOrigins.push(u.origin, `${u.protocol}//*.${u.host}`);
+}
+
 // Content-Security-Policy: scripts/styles from self only (Next needs 'unsafe-inline' for its
 // bootstrap scripts unless nonces are used). Images may come from the configured storage CDN.
 const csp = [
@@ -11,7 +19,7 @@ const csp = [
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  `connect-src 'self' ${storageOrigins.join(" ")}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self' https://www.linkedin.com https://www.instagram.com https://x.com https://twitter.com https://accounts.google.com",

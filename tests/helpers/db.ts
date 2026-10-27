@@ -23,6 +23,13 @@ export async function createTestDb() {
     },
     delete: async (k) => void mem.delete(k),
     publicUrl: async (k) => `https://media.example.test/${k}`,
+    stream: async (k) => {
+      const v = mem.get(k);
+      if (!v) throw new Error("missing");
+      return { body: new Blob([new Uint8Array(v)]).stream(), size: v.length };
+    },
+    size: async (k) => mem.get(k)?.length ?? null,
+    directUploadUrl: async (k) => `https://upload.example.test/${k}`,
   };
   setStorageForTesting(store);
   return {

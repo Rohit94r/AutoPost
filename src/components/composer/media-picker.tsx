@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/overlay";
 import { api, errorMessage } from "@/lib/api-client";
+import { uploadFile } from "@/lib/upload";
 import { cn, formatBytes } from "@/lib/utils";
 import type { MediaItem } from "./types";
 
@@ -19,10 +20,8 @@ export function MediaPicker({ selected, onChange }: { selected: MediaItem[]; onC
     setUploading(true);
     const added: MediaItem[] = [];
     for (const file of Array.from(files)) {
-      const fd = new FormData();
-      fd.append("file", file);
       try {
-        const r = await api<{ media: MediaItem }>("/media", { method: "POST", body: fd });
+        const r = await uploadFile<{ media: MediaItem }>(file, "media");
         added.push(r.media);
       } catch (err) {
         toast.error(`${file.name}: ${errorMessage(err)}`);
