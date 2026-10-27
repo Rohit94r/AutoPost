@@ -29,7 +29,7 @@ test("health endpoint reports database status", async ({ request }) => {
 });
 
 // Onboarding saves workspace, brand voice and profile in sequence; a cold dev server compiles pages on first visit.
-test("sign up → onboarding → save a draft → find it in history", async ({ page }) => {
+test("sign up → onboarding → Get started → save a draft → find it in history", async ({ page }) => {
   test.setTimeout(120_000);
   const email = `e2e-${Date.now()}@example.test`;
   await page.goto("/sign-up");
@@ -42,7 +42,8 @@ test("sign up → onboarding → save a draft → find it in history", async ({ 
   await page.getByRole("button", { name: /continue/i }).click();
   await page.getByRole("button", { name: /continue/i }).click();
   await page.getByRole("button", { name: /enter verdant/i }).click();
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 });
+  await expect(page).toHaveURL(/\/setup/, { timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: /get you posting/i })).toBeVisible();
 
   await page.goto("/compose");
   await page.getByLabel("Internal label").fill("E2E draft");

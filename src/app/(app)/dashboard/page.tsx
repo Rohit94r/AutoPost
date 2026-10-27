@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarClock, CheckCircle2, FileScan, Link2, PenSquare, Sparkles, XCircle } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, FileScan, Link2, PenSquare, Rocket, Sparkles, XCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CardTitle, EmptyState, GlassCard, PageHeader, Stat } from "@/components/ui/misc";
@@ -10,6 +10,7 @@ import { channelSummaries, dashboardData } from "@/server/dashboard/service";
 import { PLATFORM_META } from "@/lib/platforms";
 import { PlatformIcon } from "@/components/ui/platform";
 import { integrationStatus } from "@/server/env";
+import { setupProgress } from "@/server/setup/service";
 
 export const metadata = { title: "Dashboard" };
 
@@ -29,9 +30,19 @@ const ACTION_LABEL: Record<string, string> = {
   "workspace.updated": "updated workspace settings",
 };
 
+const NEXT_STEP: Record<string, string> = {
+  brand: "tell Verdant how you write",
+  apps: "connect your apps",
+  post: "create your first post",
+  publish: "publish or schedule it",
+  autopilot: "let autopilot answer comments",
+  inbox: "reply to a comment",
+};
+
 export default async function DashboardPage() {
   const ctx = await requirePageContext();
-  const [d, channels] = await Promise.all([dashboardData(ctx.workspace.id), channelSummaries(ctx.workspace.id)]);
+  const [d, channels, setup] = await Promise.all([dashboardData(ctx.workspace.id), channelSummaries(ctx.workspace.id), setupProgress(ctx.user.id, ctx.workspace.id)]);
+  const nextStep = setup.steps.find((s) => !s.done && !s.skipped);
   const totalOpen = channels.reduce((s, ch) => s + ch.openComments, 0);
   const totalFollowers = channels.reduce((s, ch) => s + (ch.followers ?? 0), 0);
   const ai = d.usage.items.find((i) => i.key === "ai")!;
@@ -60,6 +71,23 @@ export default async function DashboardPage() {
           </>
         }
       />
+
+      {!setup.hidden && nextStep && (
+        <GlassCard className="mb-4 flex flex-wrap items-center gap-4">
+          <span className="grid size-11 place-items-center rounded-2xl bg-sun/15 text-sun">
+            <Rocket className="size-5" />
+          </span>
+          <div className="min-w-48 flex-1">
+            <p className="font-semibold text-white">Finish setting up</p>
+            <p className="text-sm text-fog">
+              {setup.steps.length - setup.remaining} of {setup.steps.length} steps done. Next: {NEXT_STEP[nextStep.id]}.
+            </p>
+          </div>
+          <Button asChild>
+            <Link href="/setup">Continue setup</Link>
+          </Button>
+        </GlassCard>
+      )}
 
       {!integrations.groq && !integrations.gemini && (
         <div className="mb-4 rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">

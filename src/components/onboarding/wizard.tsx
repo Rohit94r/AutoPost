@@ -53,7 +53,7 @@ export function OnboardingWizard({ userName, workspace, brand, integrations }: P
       if (brand) await api(`/brand-profiles/${brand.id}`, { method: "PATCH", json: voice });
       else await api("/brand-profiles", { method: "POST", json: voice });
       await api("/me", { method: "PATCH", json: { timezone: tz, completeOnboarding: true } });
-      router.replace("/dashboard");
+      router.replace("/setup");
       router.refresh();
     } catch (err) {
       toast.error(errorMessage(err));

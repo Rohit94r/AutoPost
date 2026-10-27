@@ -11,6 +11,7 @@ const APP_PREFIXES = [
   "/onboarding",
   "/accounts",
   "/compose",
+  "/setup",
   "/inbox",
   "/channels",
   "/calendar",

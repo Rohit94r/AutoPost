@@ -17,6 +17,7 @@ import {
   Palette,
   PenSquare,
   Plus,
+  Rocket,
   Settings,
   ShieldAlert,
   X,
@@ -63,10 +64,12 @@ interface Props {
   isAdmin: boolean;
   /** Connected platforms with the number of comments waiting. */
   channels: { platform: Platform; open: number }[];
+  /** Get started steps left (0 when finished or hidden: the sidebar item disappears). */
+  setupRemaining: number;
   children: React.ReactNode;
 }
 
-export function AppShell({ user, workspace, memberships, isAdmin, channels, children }: Props) {
+export function AppShell({ user, workspace, memberships, isAdmin, channels, setupRemaining, children }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [appsOpen, setAppsOpen] = useState(pathname.startsWith("/channels/"));
@@ -78,6 +81,20 @@ export function AppShell({ user, workspace, memberships, isAdmin, channels, chil
         <div key={group.section}>
           <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-[0.16em] text-stone">{group.section}</p>
           <ul className="space-y-0.5">
+            {group.section === "Create" && setupRemaining > 0 && (
+              <li>
+                <Link
+                  href="/setup"
+                  onClick={() => setOpen(false)}
+                  aria-current={pathname === "/setup" ? "page" : undefined}
+                  className={cn("group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition", pathname === "/setup" ? "bg-white/12 text-white" : "text-fog hover:bg-white/6 hover:text-white")}
+                >
+                  <Rocket className={cn("size-4", pathname === "/setup" ? "text-moss" : "text-sun")} />
+                  <span className="flex-1">Get started</span>
+                  <span className="rounded-full bg-sun/20 px-1.5 text-[10px] font-semibold text-sun">{setupRemaining} left</span>
+                </Link>
+              </li>
+            )}
             {group.items.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
@@ -339,6 +356,7 @@ function UserMenu({ user }: Pick<Props, "user">) {
           {[
             ["/settings/security", "Account & security"],
             ["/settings/usage", "Usage & plan"],
+            ["/setup", "Get started guide"],
           ].map(([href, label]) => (
             <DM.Item key={href} asChild className="cursor-pointer rounded-lg px-2 py-2 text-sm text-fog outline-none data-highlighted:bg-white/10 data-highlighted:text-white">
               <Link href={href!}>{label}</Link>

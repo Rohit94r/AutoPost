@@ -1,7 +1,7 @@
 "use client";
 import { AlertTriangle, Check, ExternalLink, KeyRound, Minus, Plug, RefreshCcw, Settings2, Unplug } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -74,6 +74,19 @@ export function Accounts({ accounts, platforms, canManage, baseUrl }: { accounts
       setBusy(null);
     }
   }
+
+  // /accounts?connect=<platform> (from the Get started guide) starts that platform's connection.
+  const autoConnect = params.get("connect");
+  const startAutoConnect = useEffectEvent((platform: string) => {
+    router.replace("/accounts");
+    const p = platforms.find((x) => x.platform === platform);
+    if (!p || !canManage) return;
+    if (PLATFORM_META[p.platform].connection !== "credentials" && !p.configured) return toast.error(`${PLATFORM_META[p.platform].label} isn't enabled on this server yet.`);
+    void connect(p);
+  });
+  useEffect(() => {
+    if (autoConnect) void Promise.resolve(autoConnect).then(startAutoConnect);
+  }, [autoConnect]);
 
   async function refresh(a: AccountView) {
     setBusy(`r-${a.id}`);

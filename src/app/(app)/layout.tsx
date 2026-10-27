@@ -7,6 +7,7 @@ import { requirePageContext } from "@/server/auth/session";
 import { connectedPlatforms } from "@/server/channels/service";
 import { db } from "@/server/db";
 import { users } from "@/server/db/schema";
+import { setupProgress } from "@/server/setup/service";
 import { listMemberships } from "@/server/workspaces/service";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const ctx = await requirePageContext();
   const [u] = await db.select({ onboardingCompletedAt: users.onboardingCompletedAt, timezone: users.timezone }).from(users).where(eq(users.id, ctx.user.id));
   if (!u?.onboardingCompletedAt) redirect("/onboarding");
-  const [memberships, channels] = await Promise.all([listMemberships(ctx.user.id), connectedPlatforms(ctx.workspace.id)]);
+  const [memberships, channels, setup] = await Promise.all([listMemberships(ctx.user.id), connectedPlatforms(ctx.workspace.id), setupProgress(ctx.user.id, ctx.workspace.id)]);
   return (
     <div className="relative min-h-dvh">
       <div className="fixed inset-0 -z-10">
@@ -28,6 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         memberships={memberships.map((m) => ({ id: m.id, name: m.name, role: m.role }))}
         isAdmin={isAdmin(ctx.user.email)}
         channels={channels.map((ch) => ({ platform: ch.platform, open: ch.open }))}
+        setupRemaining={setup.hidden ? 0 : setup.remaining}
       >
         {children}
       </AppShell>
