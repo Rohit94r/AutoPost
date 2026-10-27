@@ -1,6 +1,5 @@
 import "server-only";
 import { createHash, createHmac } from "node:crypto";
-import { randomToken } from "@/server/crypto";
 import { BaseAdapter, meta } from "./base";
 import { assertPublicHttpsUrl, platformFetch, readJson } from "./http";
 import { PlatformError, type CredentialField, type PublishInput, type PublishResult } from "./types";
@@ -21,7 +20,7 @@ export class WebhookAdapter extends BaseAdapter {
   credentialFields(): CredentialField[] {
     return [
       { key: "url", label: "Endpoint URL", type: "url", placeholder: "https://yoursite.com/api/verdant", required: true },
-      { key: "secret", label: "Signing secret (optional)", type: "password", help: "Leave blank to generate one. Your endpoint uses it to verify the X-Verdant-Signature header." },
+      { key: "secret", label: "Signing secret", type: "password", help: "Make up a long random value (16+ characters) and store the same value on your server to verify the X-Verdant-Signature header.", required: true },
     ];
   }
 
@@ -42,7 +41,9 @@ export class WebhookAdapter extends BaseAdapter {
 
   async connectWithCredentials(values: Record<string, string>) {
     const url = (await assertPublicHttpsUrl((values.url ?? "").trim())).toString();
-    const secret = values.secret?.trim() || randomToken(24);
+    // The user chooses the secret so their server can verify signatures (a generated one would never be shown to them).
+    const secret = values.secret?.trim() ?? "";
+    if (secret.length < 16) throw new PlatformError("validation", "Use a signing secret of at least 16 characters, and store the same value on your server.");
     await this.send(url, secret, { event: "verdant.ping", message: "Verdant is checking this endpoint. Respond with any 2xx status." });
     const host = new URL(url).host;
     return {
