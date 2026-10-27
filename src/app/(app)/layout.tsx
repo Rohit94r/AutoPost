@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { isAdmin } from "@/server/admin/service";
 import { requirePageContext } from "@/server/auth/session";
 import { connectedPlatforms } from "@/server/channels/service";
+import { tickFromTraffic } from "@/server/jobs/runner";
 import { db } from "@/server/db";
 import { users } from "@/server/db/schema";
 import { setupProgress } from "@/server/setup/service";
@@ -16,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const ctx = await requirePageContext();
   const [u] = await db.select({ onboardingCompletedAt: users.onboardingCompletedAt, timezone: users.timezone }).from(users).where(eq(users.id, ctx.user.id));
   if (!u?.onboardingCompletedAt) redirect("/onboarding");
+  tickFromTraffic();
   const [memberships, channels, setup] = await Promise.all([listMemberships(ctx.user.id), connectedPlatforms(ctx.workspace.id), setupProgress(ctx.user.id, ctx.workspace.id)]);
   return (
     <div className="relative min-h-dvh">

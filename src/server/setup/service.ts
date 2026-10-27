@@ -1,10 +1,10 @@
 import "server-only";
-import { and, count, eq, ne } from "drizzle-orm";
+import { and, count, eq, ne, sql } from "drizzle-orm";
 import { PLATFORMS, type Platform } from "@/lib/platforms";
 import { db } from "@/server/db";
-import { autoReplyRules, brandProfiles, contentItems, engagementItems, publishingJobs, socialAccounts, users } from "@/server/db/schema";
-import { backgroundMode, env, onVercel, storageProblem } from "@/server/env";
-import { lastTickAt } from "@/server/jobs/runner";
+import { autoReplyRules, brandProfiles, contentItems, engagementItems, publishingJobs, socialAccounts, storedFileChunks, users } from "@/server/db/schema";
+import { backgroundMode, env, onVercel, storageDriver, storageProblem } from "@/server/env";
+import { lastExternalTickAt } from "@/server/jobs/runner";
 import { getAdapter } from "@/server/platforms/registry";
 
 export const SETUP_STEPS = ["brand", "apps", "post", "publish", "autopilot", "inbox"] as const;
@@ -79,9 +79,17 @@ export async function serverChecks(): Promise<ServerCheck[]> {
   const e = env();
   const base = e.APP_BASE_URL;
   const mode = backgroundMode();
-  const last = mode === "cron" ? await lastTickAt() : null;
+  const last = mode === "cron" ? await lastExternalTickAt() : null;
   const tickFresh = last !== null && Date.now() - last.getTime() < 15 * 60_000;
   const storage = storageProblem();
+  const driver = storageDriver();
+  const usedMb =
+    driver === "database"
+      ? await db
+          .select({ bytes: sql<string>`coalesce(sum(octet_length(${storedFileChunks.data})), 0)::text` })
+          .from(storedFileChunks)
+          .then((r) => Math.round(Number(r[0]?.bytes ?? 0) / 1024 / 1024))
+      : null;
   const https = base.startsWith("https://");
   const checks: ServerCheck[] = [
     {
@@ -116,8 +124,16 @@ export async function serverChecks(): Promise<ServerCheck[]> {
       label: "File storage",
       required: true,
       ok: storage === null,
-      detail: storage ?? (e.STORAGE_DRIVER === "s3" ? `Uploads go to the S3 bucket ${e.S3_BUCKET}.` : "Uploads are saved on this server's disk."),
+      detail:
+        storage ??
+        (driver === "database"
+          ? `Photos, videos and documents are stored in your database (Neon), so there's nothing extra to set up. Files use ${usedMb} MB. Neon's free plan has 1 GB per project; for lots of video, switch to a bucket (steps below).`
+          : driver === "s3"
+            ? `Uploads go to the S3 bucket ${e.S3_BUCKET}.`
+            : "Uploads are saved on this server's disk."),
       steps: [
+        "Nothing to do on Vercel: files go into your database by default.",
+        "Optional, for heavy video use: move files to a bucket. Cloudflare R2 (10 GB free) works:",
         "Cloudflare R2 (10 GB free): Cloudflare dashboard → R2 → Create bucket (keep it private).",
         "R2 → Manage API tokens → Create API token with Object Read & Write for that bucket. Copy the Access Key ID, Secret Access Key and the S3 endpoint.",
         "Set STORAGE_DRIVER=s3, S3_BUCKET, S3_ENDPOINT (https://<account-id>.r2.cloudflarestorage.com), S3_REGION=auto, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY. Redeploy.",
@@ -133,10 +149,10 @@ export async function serverChecks(): Promise<ServerCheck[]> {
           required: true,
           ok: Boolean(e.CRON_SECRET) && tickFresh,
           detail: !e.CRON_SECRET
-            ? "CRON_SECRET isn't set, so the scheduler endpoint is locked."
+            ? "Scheduled posts, comment sync and autopilot run while people use the app. CRON_SECRET isn't set, so nothing runs when nobody is using it."
             : last
-              ? `Last run ${Math.round((Date.now() - last.getTime()) / 60_000)} min ago${tickFresh ? "" : " (it should run every minute)"}.`
-              : "The scheduler hasn't run yet.",
+              ? `The every-minute scheduler last ran ${Math.round((Date.now() - last.getTime()) / 60_000)} min ago${tickFresh ? "." : ". Until it runs again, work only happens while people use the app."}`
+              : "Background work runs while people use the app. Add the every-minute scheduler so scheduled posts also go out when nobody is using it.",
           steps: [
             "Create a long random secret and add it as CRON_SECRET in Vercel. Redeploy.",
             "Vercel Pro: in vercel.json change the cron schedule to \"* * * * *\" and redeploy. Vercel calls the scheduler every minute with the secret.",
@@ -154,6 +170,19 @@ export async function serverChecks(): Promise<ServerCheck[]> {
           steps: ["Create a Redis database (for example Upstash) and set REDIS_URL.", "Run `pnpm worker:prod` as a long-running process next to the web app."],
           envKeys: ["REDIS_URL"],
         },
+    {
+      id: "google",
+      label: "Sign in with Google",
+      required: false,
+      ok: Boolean(e.GOOGLE_CLIENT_ID && e.GOOGLE_CLIENT_SECRET),
+      detail: `Lets customers sign up with one click. Authorized redirect URI: ${base}/api/auth/callback/google. The same Google client can also connect YouTube.`,
+      steps: [
+        "Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth client ID → Web application.",
+        `Authorized redirect URIs: ${base}/api/auth/callback/google (and ${base}/api/v1/social-accounts/youtube/callback if you'll use YouTube).`,
+        "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET. Publish the OAuth consent screen so any Google account can sign in. Redeploy.",
+      ],
+      envKeys: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+    },
     {
       id: "email",
       label: "Email (sign-up verification, password reset)",

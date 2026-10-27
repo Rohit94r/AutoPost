@@ -3,6 +3,8 @@ import { hostname } from "node:os";
 import { and, asc, eq, isNotNull, lt } from "drizzle-orm";
 import { collectAccountStats, collectDueMetrics } from "@/server/analytics/service";
 import { db } from "@/server/db";
+import { backgroundMode } from "@/server/env";
+import { runAfterResponse } from "./after";
 import { appState, publishingJobs, uploadedDocuments } from "@/server/db/schema";
 import { logger } from "@/server/logger";
 import { engagement, maintainTokens, retention, scheduleReminders } from "@/server/maintenance";
@@ -17,6 +19,7 @@ import { dueJobsCondition } from "@/server/publishing/service";
 
 const MINUTE = 60_000;
 const LAST_TICK = "scheduler:last-tick";
+const LAST_EXTERNAL_TICK = "scheduler:last-external-tick";
 
 /** Periodic tasks and how often they run. */
 const tasks = (): { name: string; every: number; run: () => Promise<unknown> }[] => [
@@ -100,8 +103,29 @@ export async function tick(budgetMs = 240_000) {
   return report;
 }
 
-/** When the scheduler last called /api/cron/tick, or null if it never has. */
-export async function lastTickAt(): Promise<Date | null> {
-  const [row] = await db.select({ updatedAt: appState.updatedAt }).from(appState).where(eq(appState.key, LAST_TICK));
+async function stateTime(key: string): Promise<Date | null> {
+  const [row] = await db.select({ updatedAt: appState.updatedAt }).from(appState).where(eq(appState.key, key));
   return row?.updatedAt ?? null;
+}
+
+/** When background work last ran (scheduler or app traffic), or null if never. */
+export const lastTickAt = () => stateTime(LAST_TICK);
+
+/** When an external scheduler (Vercel Cron, cron-job.org) last called /api/cron/tick. */
+export const lastExternalTickAt = () => stateTime(LAST_EXTERNAL_TICK);
+
+export async function markExternalTick(now = new Date()) {
+  await db.insert(appState).values({ key: LAST_EXTERNAL_TICK, updatedAt: now }).onConflictDoUpdate({ target: appState.key, set: { updatedAt: now } });
+}
+
+/**
+ * Cron mode: while people use the app, run background work after their page loads (at most once a
+ * minute across all servers). Keeps things moving without any scheduler; an external one is still
+ * needed for posts scheduled when nobody is using the app.
+ */
+export function tickFromTraffic() {
+  if (backgroundMode() !== "cron") return;
+  runAfterResponse("tick-from-traffic", async () => {
+    if (await claimTask("traffic-tick", MINUTE)) await tick(120_000);
+  });
 }

@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { env } from "@/server/env";
-import { tick } from "@/server/jobs/runner";
+import { markExternalTick, tick } from "@/server/jobs/runner";
 import { logger } from "@/server/logger";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,7 @@ async function handle(req: Request) {
   }
   if (!authorized(req)) return NextResponse.json({ error: { code: "unauthorized", message: "Invalid scheduler secret." } }, { status: 401 });
   const started = Date.now();
+  await markExternalTick();
   const report = await tick();
   logger.info({ report, ms: Date.now() - started }, "scheduler tick");
   return NextResponse.json({ ok: true, ms: Date.now() - started, report });
