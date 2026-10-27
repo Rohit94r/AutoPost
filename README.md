@@ -44,7 +44,7 @@ The app sidebar is organised around the work: **Create** (Dashboard, Create post
 | **Start from a document** (in Create post) | Upload PDF/image → validate (MIME + magic bytes) → text extraction / Gemini OCR → document-type-aware fact extraction with confidence & evidence → **user review & correction** → content directions → platform drafts. |
 | **AI images** (in Create post) | Image prompt + alt text from the post, image generation with Gemini, attached to the post in one click. |
 | **Media** | Validated uploads, image metadata + thumbnails, reuse, deletion, per-platform media validation, signed public URLs for platforms that fetch media (Instagram). |
-| **Publishing engine** | One job per destination account. Durable in Postgres, executed by a persistent BullMQ worker. Idempotency keys, atomic claims, bounded exponential backoff, permanent-error detection, reconnection states, partial success, cancellation. |
+| **Publishing engine** | One job per destination account. Durable in Postgres, executed on Vercel by a once-a-minute scheduler (`/api/cron/tick`) or, self-hosted, by a persistent BullMQ worker. Idempotency keys, atomic claims, bounded exponential backoff, permanent-error detection, reconnection states, partial success, cancellation. |
 | **Inbox → Comments** | Comments, replies and mentions from every supporting platform, linked to the post they're on. Reply from the web and it posts on the platform; AI-suggested replies. |
 | **Inbox → Autopilot** | Rules (all / questions / keywords / mentions) that draft or auto-post replies in your brand voice, with daily caps and safety: spam and abuse are never answered, negatives go to review. |
 | **Apps** | One page per connected app (sidebar → Apps ▾): account stats, likes / views / shares / comments, a 30-day posting chart, delivery success, autopilot status, every post with its metrics, and that app's comments with replies. |
@@ -154,7 +154,8 @@ See [`.env.example`](.env.example) for every variable with comments. Summary:
 | Variable | Required | Purpose |
 |---|---|---|
 | `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `REDIS_URL` | ✅ (worker) | Redis for BullMQ + rate limiting |
+| `REDIS_URL` | worker mode | Redis for BullMQ + shared rate limiting (optional on Vercel) |
+| `CRON_SECRET` | Vercel | Protects `/api/cron/tick`, the scheduler endpoint |
 | `APP_BASE_URL` | ✅ | Public base URL (used for OAuth callbacks & signed media URLs) |
 | `BETTER_AUTH_SECRET` | ✅ | Session signing secret (32+ random bytes) |
 | `ENCRYPTION_KEY` | ✅ | Base64 32-byte key for AES-256-GCM token encryption |
@@ -239,7 +240,11 @@ Automated tests **never** call real platform APIs or publish to real accounts.
 
 ## Deployment
 
-Three processes: **web** (Next.js), **worker** (persistent Node), plus managed **Postgres** and **Redis**. Serverless functions are *not* used for scheduled work. Step-by-step guides for Docker/VPS, Render/Railway/Fly and Vercel + separate worker: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+**Vercel + Neon (recommended):** no extra servers. The `vercel-build` script migrates the database on production deploys, "Publish now" runs right after the request, and a scheduler calling `/api/cron/tick` every minute handles scheduled posts, comment sync and autopilot. Files upload straight to an S3-compatible bucket (Cloudflare R2). After the first deploy, sign in and open **Get started**: it walks each user through connecting their apps and shows admins exactly which settings are still missing.
+
+**Self-hosted:** web (`pnpm start`) plus a persistent worker (`pnpm worker:prod`) with Redis.
+
+Step-by-step guides for both: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Build stages & status
 

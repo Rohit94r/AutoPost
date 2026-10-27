@@ -85,7 +85,7 @@ The app shows these same capabilities on the Accounts page, so users always know
 3. Set `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` and `REDDIT_USERNAME` (used in the required User-Agent). Posts go to the user's profile unless a subreddit is set in Accounts → Settings.
 
 ## X
-1. In the X developer portal, set up **User authentication**: Read and write, Web App (confidential client), callback `…/social-accounts/x/callback`.
+1. In the X Developer Console (https://console.x.com), create an app and set up **User authentication**: Read and write, Web App (confidential client), callback `…/social-accounts/x/callback`.
 2. Put the keys in `X_CLIENT_ID` and `X_CLIENT_SECRET`. Fund pay-per-use credits.
 3. Inbox replies and mentions cost reads, so they're off until you set `ENGAGEMENT_X_ENABLED=true`. API replies only work on posts that mention or quote the account.
 

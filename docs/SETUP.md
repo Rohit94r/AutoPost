@@ -73,6 +73,11 @@ pnpm worker    # terminal 2 → publishing, documents, analytics, maintenance
 
 Without Redis, the web app still works (rate limits fall back to in-memory, and in development document extraction runs inline). Scheduled publishing **requires** the worker, and the worker requires Redis.
 
+Troubleshooting:
+- **"Failed to get session"**: the database isn't reachable. Start it (`pnpm db:local`, or check `DATABASE_URL`).
+- **The page keeps reloading in development**: a production build (`pnpm build`) ran in the same folder as `pnpm dev`. Stop `pnpm dev`, delete the `.next` folder and start it again.
+- **Scheduled posts don't go out locally**: there's no scheduler in development. Call `http://localhost:3000/api/cron/tick` (allowed without a secret in development), or run the worker with Redis.
+
 ## 5. AI providers
 
 | Provider | Steps |
