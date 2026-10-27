@@ -74,6 +74,8 @@ export default async function ComposePage({ searchParams }: { searchParams: Prom
         startWith={documentId || start === "document" ? "document" : start === "image" ? "image" : null}
         initialDocumentId={documentId}
         schedulerWarning={isAdmin(ctx.user.email) ? await schedulerWarning(integrations.redis) : null}
+        aiConsent={Boolean(ctx.workspace.aiProcessingConsentAt)}
+        isAdmin={isAdmin(ctx.user.email)}
         documents={{ maxMb: e.DOCUMENT_MAX_MB, retentionDays: ctx.workspace.documentRetentionDays, aiReady: integrations.gemini || Boolean(e.AI_MODEL_EXTRACT) }}
       />
     </>

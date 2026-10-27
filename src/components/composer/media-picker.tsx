@@ -1,5 +1,5 @@
 "use client";
-import { Film, ImagePlus, Trash2, Upload } from "lucide-react";
+import { Film, ImagePlus, Sparkles, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,23 @@ import { uploadFile } from "@/lib/upload";
 import { cn, formatBytes } from "@/lib/utils";
 import type { MediaItem } from "./types";
 
-export function MediaPicker({ selected, onChange }: { selected: MediaItem[]; onChange: (m: MediaItem[]) => void }) {
+/** Photos the AI can read to write the post (certificates, posters, letters…). */
+export const READABLE_IMAGE = /^image\/(jpeg|png|webp)$/;
+
+interface Props {
+  selected: MediaItem[];
+  onChange: (m: MediaItem[]) => void;
+  /** Called with photos just uploaded (not ones picked from the library). */
+  onUploaded?: (added: MediaItem[]) => void;
+  /** PDFs aren't post media: they're handed over to be read instead. */
+  onPdf?: (file: File) => void;
+  /** "Write post from this" on a photo. */
+  onRead?: (m: MediaItem) => void;
+  /** Media id currently being read (shows progress on its tile). */
+  readingId?: string | null;
+}
+
+export function MediaPicker({ selected, onChange, onUploaded, onPdf, onRead, readingId }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [libOpen, setLibOpen] = useState(false);
@@ -20,6 +36,11 @@ export function MediaPicker({ selected, onChange }: { selected: MediaItem[]; onC
     setUploading(true);
     const added: MediaItem[] = [];
     for (const file of Array.from(files)) {
+      if (file.type === "application/pdf") {
+        if (onPdf) onPdf(file);
+        else toast.error(`${file.name}: PDFs can't be attached to a post.`);
+        continue;
+      }
       try {
         const r = await uploadFile<{ media: MediaItem }>(file, "media");
         added.push(r.media);
@@ -28,7 +49,10 @@ export function MediaPicker({ selected, onChange }: { selected: MediaItem[]; onC
       }
     }
     setUploading(false);
-    if (added.length) onChange([...selected, ...added]);
+    if (added.length) {
+      onChange([...selected, ...added]);
+      onUploaded?.(added);
+    }
   }
 
   async function openLibrary() {
@@ -70,6 +94,16 @@ export function MediaPicker({ selected, onChange }: { selected: MediaItem[]; onC
                 <button type="button" onClick={() => onChange(selected.filter((x) => x.id !== m.id))} className="absolute right-1 top-1 rounded-md bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100 focus:opacity-100" aria-label={`Remove ${m.originalFilename}`}>
                   <Trash2 className="size-3.5" />
                 </button>
+                {onRead && READABLE_IMAGE.test(m.mimeType) && (
+                  <button
+                    type="button"
+                    onClick={() => onRead(m)}
+                    disabled={Boolean(readingId)}
+                    className={cn("absolute inset-x-1 bottom-1 flex items-center justify-center gap-1 rounded-md bg-black/70 px-1 py-1 text-[11px] text-white transition disabled:opacity-60", readingId === m.id ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus:opacity-100")}
+                  >
+                    <Sparkles className="size-3" /> {readingId === m.id ? "Reading…" : "Write from this"}
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -81,9 +115,9 @@ export function MediaPicker({ selected, onChange }: { selected: MediaItem[]; onC
           <Button type="button" size="sm" variant="ghost" onClick={openLibrary}>
             <ImagePlus /> From library
           </Button>
-          <span className="text-xs text-stone">JPEG, PNG, WebP, GIF, MP4 or MOV. Drag and drop works too.</span>
+          <span className="text-xs text-stone">{onPdf ? "Photos, videos or a PDF. A certificate, poster or letter is read and the post is written for you." : "JPEG, PNG, WebP, GIF, MP4 or MOV. Drag and drop works too."}</span>
         </div>
-        <input ref={input} type="file" hidden multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime" onChange={(e) => e.target.files && upload(e.target.files)} />
+        <input ref={input} type="file" hidden multiple accept={`image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime${onPdf ? ",application/pdf" : ""}`} onChange={(e) => e.target.files && upload(e.target.files)} />
       </div>
 
       <Dialog open={libOpen} onOpenChange={setLibOpen} title="Media library" description="Reuse something you've uploaded before." wide>

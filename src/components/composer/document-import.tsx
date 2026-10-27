@@ -47,7 +47,7 @@ interface DocDetail {
  * "Start from a document" inside Create post: upload a certificate/letter/poster, check the facts
  * Gemini extracted, then generate platform drafts from them. Earlier documents can be reopened.
  */
-export function DocumentImport({ initialId, maxMb, retentionDays, aiReady }: { initialId: string | null; maxMb: number; retentionDays: number; aiReady: boolean }) {
+export function DocumentImport({ initialId, maxMb, retentionDays, aiReady, showSetupHints }: { initialId: string | null; maxMb: number; retentionDays: number; aiReady: boolean; showSetupHints: boolean }) {
   const [docs, setDocs] = useState<DocListItem[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(initialId);
   const [doc, setDoc] = useState<DocDetail | null>(null);
@@ -116,7 +116,7 @@ export function DocumentImport({ initialId, maxMb, retentionDays, aiReady }: { i
 
   return (
     <div className="space-y-5">
-      <DocumentUpload maxMb={maxMb} retentionDays={retentionDays} aiReady={aiReady} onUploaded={setActiveId} />
+      <DocumentUpload maxMb={maxMb} retentionDays={retentionDays} aiReady={aiReady} onUploaded={setActiveId} showSetupHints={showSetupHints} />
       <div>
         <p className="mb-2 text-xs uppercase tracking-wider text-stone">Your documents</p>
         {docs === null ? (

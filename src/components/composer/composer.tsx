@@ -1,15 +1,16 @@
 "use client";
-import { AlertTriangle, CalendarClock, Check, ClipboardCopy, ExternalLink, FileScan, Gauge, Hash, ImagePlus, Lock, Save, Send, Sparkles, Wand2 } from "lucide-react";
+import { AlertTriangle, CalendarClock, Check, ClipboardCopy, ExternalLink, FileScan, FileUp, Gauge, Hash, ImagePlus, Lock, Save, Send, Sparkles, Undo2, Wand2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, TagInput, Textarea } from "@/components/ui/field";
-import { CardTitle, GlassCard, Notice } from "@/components/ui/misc";
+import { CardTitle, GlassCard, Notice, Spinner } from "@/components/ui/misc";
 import { Dialog, Switch, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/overlay";
 import { PlatformBadge, PlatformIcon, StatusBadge } from "@/components/ui/platform";
 import { api, ApiError, errorMessage } from "@/lib/api-client";
+import { uploadFile } from "@/lib/upload";
 import { finalPostText, PLATFORM_META, PLATFORMS, platformLimits, textLength, validateMedia, type Platform, type ValidationIssue } from "@/lib/platforms";
 import { checkQuality } from "@/lib/quality";
 import { COMMON_TIMEZONES } from "@/lib/time";
@@ -18,7 +19,7 @@ import { EMOJI, HASHTAG_PREF, LENGTHS, TONES, TONE_LABEL, type WritingControls }
 import { DiffDialog, type RewriteResult } from "./diff-dialog";
 import { DocumentImport } from "./document-import";
 import { ImageLab } from "./image-lab";
-import { MediaPicker } from "./media-picker";
+import { MediaPicker, READABLE_IMAGE } from "./media-picker";
 import { PlatformPreview } from "./preview";
 import type { AccountOption, BrandOption, JobSummary, MediaItem, VariantState } from "./types";
 
@@ -53,6 +54,19 @@ interface Props {
   documents: { maxMb: number; retentionDays: number; aiReady: boolean };
   /** Problem with background publishing to show above the Publish button, or null when it's healthy. */
   schedulerWarning: string | null;
+  /** The workspace allows AI to read uploaded files (Settings → AI processing). */
+  aiConsent: boolean;
+  /** Admins see setup hints (e.g. "AI isn't configured"); other users never do. */
+  isAdmin: boolean;
+}
+
+/** Progress of "upload a file, get a post". */
+interface Autofill {
+  stage: "reading" | "writing" | "done" | "error";
+  name: string;
+  mediaId?: string;
+  message?: string;
+  undo?: { title: string; body: string; variants: Partial<Record<Platform, VariantState>>; platforms: Platform[] };
 }
 
 type Mode = "now" | "schedule";
@@ -62,7 +76,7 @@ interface Critique {
   issues: { severity: string; message: string; quote?: string }[];
 }
 
-export function Composer({ initial, accounts, brands, timezone, defaultScheduleLocal, xMaxLength, aiAvailable, startWith, initialDocumentId, documents, schedulerWarning }: Props) {
+export function Composer({ initial, accounts, brands, timezone, defaultScheduleLocal, xMaxLength, aiAvailable, startWith, initialDocumentId, documents, schedulerWarning, aiConsent, isAdmin }: Props) {
   const router = useRouter();
   const [contentId, setContentId] = useState(initial.id);
   const [title, setTitle] = useState(initial.title);
@@ -88,6 +102,11 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
   const [aiNote, setAiNote] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool | null>(startWith);
   const [critiques, setCritiques] = useState<Partial<Record<Platform, Critique>>>({});
+  const [autofill, setAutofill] = useState<Autofill | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  // Reading files needs AI on the server; the workspace setting is checked when it's used.
+  const canReadFiles = aiAvailable && documents.aiReady;
+  const readingNow = autofill?.stage === "reading" || autofill?.stage === "writing";
   const idemKey = useRef<string | null>(null);
 
   const lockedPlatforms = new Set(initial.jobs.filter((j) => j.status === "published" || j.status === "processing").map((j) => j.platform));
@@ -158,6 +177,78 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
       toast.error(errorMessage(err));
     } finally {
       setBusy(null);
+    }
+  }
+
+  /** Wait until the uploaded file has been read (the document pipeline runs in the background). */
+  async function waitUntilRead(documentId: string) {
+    for (let i = 0; i < 75; i++) {
+      const { document } = await api<{ document: { status: string; error: string | null } }>(`/documents/${documentId}`);
+      if (document.status === "extracted" || document.status === "reviewed") return;
+      if (document.status === "failed") throw new Error(document.error ?? "The file couldn't be read. Try a clearer photo, or write the post yourself.");
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+    throw new Error("Reading the file is taking longer than usual. Try again in a minute.");
+  }
+
+  /** Upload a file, get a post: read a photo or PDF, then fill the main content and every platform version. */
+  async function writeFromFile(source: { media: MediaItem } | { pdf: File }) {
+    const name = "media" in source ? source.media.originalFilename : source.pdf.name;
+    if (!canReadFiles) return;
+    if (!aiConsent) {
+      toast.error("Reading files with AI is turned off for this workspace.", { action: { label: "Open Settings", onClick: () => router.push("/settings") } });
+      return;
+    }
+    const targets = platforms.length ? platforms : (["linkedin"] as Platform[]);
+    const undo = { title, body, variants, platforms };
+    setAutofill({ stage: "reading", name, mediaId: "media" in source ? source.media.id : undefined });
+    try {
+      const documentId =
+        "media" in source
+          ? (await api<{ documentId: string }>("/ai/read-file", { method: "POST", json: { mediaId: source.media.id } })).documentId
+          : (await uploadFile<{ document: { id: string } }>(source.pdf, "document", { consent: true })).document.id;
+      await waitUntilRead(documentId);
+      setAutofill((a) => (a ? { ...a, stage: "writing" } : a));
+      const r = await api<{ title: string; body: string; variants: { platform: Platform; text: string; hashtags: string[] }[]; warnings: string[]; notes: string | null }>("/ai/write-from-file", {
+        method: "POST",
+        json: { ...aiBase(), documentId, platforms: targets },
+      });
+      if (!title.trim()) setTitle(r.title);
+      setBody(r.body);
+      if (!platforms.length) {
+        setPlatforms(targets);
+        setActive(targets[0]!);
+      }
+      setVariants((v) => {
+        const next = { ...v };
+        for (const x of r.variants) if (!lockedPlatforms.has(x.platform)) next[x.platform] = { ...(v[x.platform] ?? { includeMedia: true }), body: x.text, hashtags: x.hashtags, aiGenerated: true } as VariantState;
+        return next;
+      });
+      setAutofill({ stage: "done", name, undo, message: r.warnings[0] ?? r.notes ?? undefined });
+    } catch (err) {
+      setAutofill({ stage: "error", name, message: errorMessage(err) });
+    }
+  }
+
+  function undoAutofill() {
+    const u = autofill?.undo;
+    if (!u) return;
+    setTitle(u.title);
+    setBody(u.body);
+    setVariants(u.variants);
+    setPlatforms(u.platforms);
+    setAutofill(null);
+  }
+
+  /** "Upload a photo or PDF" at the top: photos are attached to the post and read; PDFs are only read. */
+  async function pickFile(file: File) {
+    if (file.type === "application/pdf") return writeFromFile({ pdf: file });
+    try {
+      const { media: m } = await uploadFile<{ media: MediaItem }>(file, "media");
+      setMedia((cur) => [...cur, m]);
+      if (READABLE_IMAGE.test(m.mimeType)) await writeFromFile({ media: m });
+    } catch (err) {
+      toast.error(`${file.name}: ${errorMessage(err)}`);
     }
   }
 
@@ -258,19 +349,55 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
             <Input aria-label="Internal label" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Internal label (only you see this)" className="h-9 border-transparent bg-transparent px-0 text-lg font-semibold focus:bg-black/20 focus:px-3" />
             {initial.status !== "draft" && <StatusBadge status={initial.status} />}
           </div>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <span className="text-xs text-stone">Start from:</span>
-            <Button size="sm" variant="glass" onClick={() => setTool("document")}>
-              <FileScan /> A document
-            </Button>
-            <Button size="sm" variant="glass" onClick={() => setTool("image")}>
-              <ImagePlus /> An AI image
-            </Button>
-          </div>
+          {(aiAvailable || isAdmin) && (
+            <div className="mb-4 rounded-xl border border-dashed border-white/15 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {canReadFiles && (
+                  <Button size="sm" onClick={() => fileInput.current?.click()} disabled={readingNow}>
+                    <FileUp /> Upload a photo or PDF
+                  </Button>
+                )}
+                <Button size="sm" variant="glass" onClick={() => setTool("document")}>
+                  <FileScan /> Document, step by step
+                </Button>
+                <Button size="sm" variant="glass" onClick={() => setTool("image")}>
+                  <ImagePlus /> Create an AI image
+                </Button>
+              </div>
+              {canReadFiles && <p className="mt-2 text-xs text-stone">Upload a certificate, poster, letter or project summary: Verdant reads it and writes the post for every platform. Check the details before you publish.</p>}
+              <input ref={fileInput} type="file" hidden accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void pickFile(f);
+              }} />
+            </div>
+          )}
+          {autofill && (
+            <div role="status" aria-live="polite" className={cn("mb-4 flex items-start gap-2.5 rounded-xl px-3 py-2.5 text-sm", autofill.stage === "error" ? "bg-dawn/10 text-red-100" : "bg-moss/10 text-mist")}>
+              {readingNow ? <Spinner className="mt-0.5 size-4 shrink-0 text-moss" /> : autofill.stage === "done" ? <Check className="mt-0.5 size-4 shrink-0 text-moss" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0" />}
+              <span className="min-w-0 flex-1">
+                {autofill.stage === "reading" && `Reading ${autofill.name}…`}
+                {autofill.stage === "writing" && `Writing your post from ${autofill.name}…`}
+                {autofill.stage === "done" && `Done. The main content shows what was read from ${autofill.name}, and each platform has its own version. Check the details before you publish.`}
+                {autofill.stage === "error" && autofill.message}
+                {autofill.stage === "done" && autofill.message && <span className="mt-1 block text-xs text-sun">{autofill.message}</span>}
+              </span>
+              {autofill.stage === "done" && autofill.undo && (
+                <button onClick={undoAutofill} className="inline-flex shrink-0 items-center gap-1 text-xs text-moss hover:underline">
+                  <Undo2 className="size-3.5" /> Undo
+                </button>
+              )}
+              {!readingNow && (
+                <button onClick={() => setAutofill(null)} aria-label="Dismiss" className="shrink-0 text-stone hover:text-white">
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+          )}
           <Field label="Main content: your idea, notes or full draft" htmlFor="master">
             <Textarea id="master" rows={7} value={body} onChange={(e) => setBody(e.target.value)} placeholder="e.g. Finished my Google Data Analytics certificate: 8 courses, capstone on why bike-share riders churn. Learned SQL + R properly for the first time." />
           </Field>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className={cn("mt-3 flex flex-wrap items-center gap-2", !aiAvailable && !isAdmin && "hidden")}>
             <Button onClick={generate} loading={busy === "generate"} disabled={!aiAvailable || !!busy}>
               <Sparkles /> Generate platform versions
             </Button>
@@ -281,7 +408,7 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
               </Button>
             ))}
           </div>
-          {!aiAvailable && <p className="mt-2 text-xs text-sun">AI isn&apos;t configured on this server. You can still write and publish manually.</p>}
+          {!aiAvailable && isAdmin && <p className="mt-2 text-xs text-sun">AI isn&apos;t configured yet (only admins see this). Add GROQ_API_KEY and GEMINI_API_KEY in Get started → Server setup.</p>}
           {aiNote && <p className="mt-3 text-xs text-fog">{aiNote}</p>}
         </GlassCard>
 
@@ -368,7 +495,18 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
           >
             Media
           </CardTitle>
-          <MediaPicker selected={media} onChange={setMedia} />
+          <MediaPicker
+            selected={media}
+            onChange={setMedia}
+            onUploaded={(added) => {
+              // The first readable photo on an empty post is read automatically.
+              const img = added.find((m) => READABLE_IMAGE.test(m.mimeType));
+              if (img && canReadFiles && aiConsent && !body.trim() && !readingNow) void writeFromFile({ media: img });
+            }}
+            onPdf={canReadFiles ? (file) => void writeFromFile({ pdf: file }) : undefined}
+            onRead={canReadFiles ? (m) => void writeFromFile({ media: m }) : undefined}
+            readingId={readingNow ? autofill?.mediaId ?? null : null}
+          />
         </GlassCard>
       </div>
 
@@ -594,11 +732,12 @@ export function Composer({ initial, accounts, brands, timezone, defaultScheduleL
         description="Upload a certificate, letter, poster or summary. Check the facts, then get a draft for every platform."
         wide="xl"
       >
-        <DocumentImport initialId={initialDocumentId} {...documents} />
+        <DocumentImport initialId={initialDocumentId} {...documents} showSetupHints={isAdmin} />
       </Dialog>
       <Dialog open={tool === "image"} onOpenChange={(o) => !o && setTool(null)} title="Create an image with AI" description="Get an image prompt and alt text from your post, then create the image and attach it." wide>
         <ImageLab
           disabled={!aiAvailable}
+          showSetupHints={isAdmin}
           initialText={body}
           onAttach={(m) => {
             setMedia((cur) => (cur.some((x) => x.id === m.id) ? cur : [...cur, m]));

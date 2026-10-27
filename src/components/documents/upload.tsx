@@ -7,7 +7,7 @@ import { errorMessage } from "@/lib/api-client";
 import { uploadFile } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 
-export function DocumentUpload({ maxMb, retentionDays, aiReady, onUploaded }: { maxMb: number; retentionDays: number; aiReady: boolean; onUploaded: (id: string) => void }) {
+export function DocumentUpload({ maxMb, retentionDays, aiReady, onUploaded, showSetupHints }: { maxMb: number; retentionDays: number; aiReady: boolean; onUploaded: (id: string) => void; showSetupHints: boolean }) {
   const input = useRef<HTMLInputElement>(null);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -57,7 +57,7 @@ export function DocumentUpload({ maxMb, retentionDays, aiReady, onUploaded }: { 
       <Button className="mt-5" onClick={() => input.current?.click()} loading={busy} disabled={!consent || !aiReady}>
         Choose a file
       </Button>
-      {!aiReady && <p className="mt-2 text-xs text-sun">Document processing needs GEMINI_API_KEY on the server.</p>}
+      {!aiReady && <p className="mt-2 text-xs text-sun">{showSetupHints ? "Reading documents needs GEMINI_API_KEY (only admins see this)." : "Reading documents isn't available right now."}</p>}
       <p className="mt-4 inline-flex items-center gap-1.5 text-xs text-stone">
         <ShieldCheck className="size-3.5" /> Files are checked by content, not just extension. Instructions hidden inside documents are ignored.
       </p>

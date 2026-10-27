@@ -22,7 +22,7 @@ const STYLES = ["Natural photography, soft daylight", "Clean 3D illustration", "
  * Image prompter: turns the post into an image prompt + alt text, and can render it with the
  * configured Gemini image model. Generated images are saved to media and can be attached to the post.
  */
-export function ImageLab({ disabled, initialText, onAttach }: { disabled: boolean; initialText: string; onAttach: (m: MediaItem) => void }) {
+export function ImageLab({ disabled, initialText, onAttach, showSetupHints }: { disabled: boolean; initialText: string; onAttach: (m: MediaItem) => void; showSetupHints: boolean }) {
   const [text, setText] = useState(initialText);
   const [style, setStyle] = useState(STYLES[0]!);
   const [aspect, setAspect] = useState("1:1");
@@ -44,7 +44,7 @@ export function ImageLab({ disabled, initialText, onAttach }: { disabled: boolea
 
   return (
     <div className="space-y-4">
-      {disabled && <Notice tone="warn">AI isn&apos;t configured on this server. Add GEMINI_API_KEY to create images.</Notice>}
+      {disabled && <Notice tone="warn">{showSetupHints ? "AI isn't configured yet (only admins see this). Add GEMINI_API_KEY in Get started → Server setup." : "Creating images isn't available right now."}</Notice>}
       <Field label="What should the image show?" htmlFor="itx" hint="Starts from your post. Edit it freely.">
         <Textarea id="itx" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="e.g. We just opened our second café: same beans, bigger garden seating." />
       </Field>
@@ -86,7 +86,7 @@ export function ImageLab({ disabled, initialText, onAttach }: { disabled: boolea
               <ImagePlus /> {res.media ? "Create another" : "Create image"}
             </Button>
           </div>
-          {!res.canGenerate && <Notice tone="info">Image generation needs GEMINI_API_KEY on the server. You can still copy the prompt into any image tool.</Notice>}
+          {!res.canGenerate && <Notice tone="info">{showSetupHints ? "Image creation needs GEMINI_API_KEY (only admins see this). " : ""}You can copy the prompt into any image tool.</Notice>}
           {res.media && (
             <figure>
               {/* eslint-disable-next-line @next/next/no-img-element */}
