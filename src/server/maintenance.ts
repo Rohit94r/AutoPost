@@ -1,8 +1,8 @@
 import "server-only";
-import { and, between, eq, inArray } from "drizzle-orm";
+import { and, between, eq, inArray, like, lt } from "drizzle-orm";
 import { PLATFORM_META } from "@/lib/platforms";
 import { db } from "@/server/db";
-import { contentItems, publishingJobs, socialAccounts } from "@/server/db/schema";
+import { contentItems, publishingJobs, socialAccounts, storedFileChunks } from "@/server/db/schema";
 import { purgeExpiredDocumentFiles } from "@/server/documents/service";
 import { archiveStaleItems, runAutopilot, syncDueAccounts } from "@/server/engagement/service";
 import { purgeOldIdempotencyKeys } from "@/server/http/idempotency";
@@ -91,10 +91,15 @@ export async function engagement() {
 }
 
 /** Every few hours: retention + housekeeping. */
-export async function retention() {
+export async function retention(now = new Date()) {
   const files = await purgeExpiredDocumentFiles();
+  // Uploads abandoned half-way (database storage) older than a day.
+  const abandoned = await db
+    .delete(storedFileChunks)
+    .where(and(like(storedFileChunks.key, "uploads/%"), lt(storedFileChunks.createdAt, new Date(now.getTime() - DAY))))
+    .returning({ key: storedFileChunks.key });
   await purgeExpiredStates();
   await purgeOldIdempotencyKeys();
   await archiveStaleItems();
-  return { documentFilesPurged: files };
+  return { documentFilesPurged: files, abandonedUploadParts: abandoned.length };
 }

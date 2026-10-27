@@ -12,7 +12,11 @@ import { assertQuota } from "@/server/usage/service";
  * Direct-to-storage uploads. The browser PUTs the file to a short-lived signed URL, then calls
  * `completeUpload`, which runs the same validation as a normal upload (magic bytes, size, quota)
  * and stores the file under its final key. Needed on Vercel, where request bodies are capped at 4.5 MB.
+ * With database storage there's no bucket to upload to, so the browser sends the file to the app in
+ * parts smaller than that limit ("chunked"); with local disk it posts a normal form ("form").
  */
+export const UPLOAD_CHUNK_BYTES = 3 * 1024 * 1024 + 512 * 1024;
+const UPLOAD_KEY = /^uploads\/[0-9a-f-]{36}\/[0-9a-f-]{36}(\.[a-z0-9]{1,5})?$/;
 export const startUploadInput = z.object({
   purpose: z.enum(["media", "document"]),
   filename: z.string().trim().min(1).max(200),
@@ -22,7 +26,7 @@ export const startUploadInput = z.object({
 
 export const completeUploadInput = z.object({
   purpose: z.enum(["media", "document"]),
-  key: z.string().regex(/^uploads\/[0-9a-f-]{36}\/[0-9a-f-]{36}(\.[a-z0-9]{1,5})?$/, "Unknown upload"),
+  key: z.string().regex(UPLOAD_KEY, "Unknown upload"),
   filename: z.string().trim().min(1).max(200),
   contentType: z.string().trim().min(1).max(100),
   altText: z.string().max(1000).optional(),
@@ -44,7 +48,20 @@ export async function startUpload(workspaceId: string, input: z.infer<typeof sta
   const ext = /\.([a-z0-9]{1,5})$/i.exec(input.filename)?.[1]?.toLowerCase() ?? "";
   const key = storageKey(workspaceId, "uploads", ext);
   const uploadUrl = await storage().directUploadUrl(key, input.contentType, 15 * 60);
-  return uploadUrl ? { direct: true as const, key, uploadUrl } : { direct: false as const };
+  if (uploadUrl) return { mode: "direct" as const, key, uploadUrl };
+  if (storage().appendChunk) return { mode: "chunked" as const, key, chunkSize: UPLOAD_CHUNK_BYTES };
+  return { mode: "form" as const };
+}
+
+/** One part of a chunked upload (database storage). */
+export async function uploadChunk(workspaceId: string, key: string, index: number, data: Buffer) {
+  if (!UPLOAD_KEY.test(key) || !key.startsWith(`uploads/${workspaceId}/`)) throw badRequest("Unknown upload");
+  const maxParts = Math.ceil(Math.max(env().DOCUMENT_MAX_MB, env().MEDIA_MAX_VIDEO_MB, env().MEDIA_MAX_IMAGE_MB) * 1024 * 1024 / UPLOAD_CHUNK_BYTES);
+  if (!Number.isInteger(index) || index < 0 || index >= maxParts) throw badRequest("Invalid upload part.");
+  if (data.length === 0 || data.length > UPLOAD_CHUNK_BYTES) throw badRequest("Invalid upload part size.");
+  const store = storage();
+  if (!store.appendChunk) throw badRequest("This server doesn't take uploads in parts.");
+  await store.appendChunk(key, index, data);
 }
 
 export async function completeUpload(ctx: { workspaceId: string; userId: string; correlationId: string; req?: Request }, input: z.infer<typeof completeUploadInput>) {

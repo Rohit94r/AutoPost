@@ -22,6 +22,13 @@
       "when": 1793052412321,
       "tag": "0002_setup_and_app_state",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793085262670,
+      "tag": "0003_stored_files",
+      "breakpoints": true
     }
   ]
 }

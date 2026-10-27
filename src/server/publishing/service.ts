@@ -7,7 +7,7 @@ import { audit } from "@/server/audit";
 import { refreshContentStatus } from "@/server/content/service";
 import { db } from "@/server/db";
 import { contentItems, contentMedia, contentVariants, mediaAssets, publishingAttempts, publishingJobs, socialAccounts } from "@/server/db/schema";
-import { env } from "@/server/env";
+import { env, storageDriver } from "@/server/env";
 import { AppError, badRequest, conflict, notFound } from "@/server/errors";
 import { enqueuePublish } from "@/server/queue";
 import { assertQuota, recordUsage } from "@/server/usage/service";
@@ -44,7 +44,7 @@ function resolveSchedule(input: z.infer<typeof createJobsInput>, now: Date) {
  */
 export function publicMediaProblem(): string | null {
   const e = env();
-  if (e.STORAGE_DRIVER === "s3") return null;
+  if (storageDriver() === "s3") return null;
   const url = new URL(e.APP_BASE_URL);
   const privateHost = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.0\.0\.0|\[?::1\]?)/.test(url.hostname) || url.hostname.endsWith(".local");
   if (url.protocol !== "https:" || privateHost) {

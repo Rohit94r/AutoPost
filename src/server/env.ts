@@ -106,7 +106,8 @@ const schema = z.object({
   ENGAGEMENT_X_ENABLED: bool(false),
   ENGAGEMENT_SYNC_MINUTES: int(15),
 
-  STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
+  // local = disk, database = inside Postgres (no extra service; default on Vercel), s3 = S3-compatible bucket.
+  STORAGE_DRIVER: z.enum(["local", "s3", "database"]).optional().or(z.literal("").transform(() => undefined)),
   STORAGE_LOCAL_DIR: z.string().default("./storage"),
   S3_BUCKET: optional,
   S3_REGION: z.string().default("auto"),
@@ -167,9 +168,15 @@ export function backgroundMode(): "worker" | "cron" {
 /** Why uploads can't be stored, or null when storage is usable. */
 export function storageProblem(): string | null {
   const e = env();
-  if (e.STORAGE_DRIVER === "s3") return e.S3_BUCKET && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY ? null : "S3 storage is selected but S3_BUCKET, S3_ACCESS_KEY_ID or S3_SECRET_ACCESS_KEY is missing.";
-  if (onVercel()) return "Vercel has no persistent disk. Set STORAGE_DRIVER=s3 with an S3-compatible bucket (Cloudflare R2, AWS S3) to store uploads.";
+  const driver = storageDriver();
+  if (driver === "s3") return e.S3_BUCKET && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY ? null : "S3 storage is selected but S3_BUCKET, S3_ACCESS_KEY_ID or S3_SECRET_ACCESS_KEY is missing.";
+  if (driver === "local" && onVercel()) return "Vercel has no persistent disk. Remove STORAGE_DRIVER=local so files are stored in the database, or use s3.";
   return null;
+}
+
+/** Where uploaded files live. Default: the database on Vercel (no extra service), the disk elsewhere. */
+export function storageDriver(): "local" | "s3" | "database" {
+  return env().STORAGE_DRIVER ?? (onVercel() ? "database" : "local");
 }
 
 export function integrationStatus() {
@@ -183,7 +190,7 @@ export function integrationStatus() {
     google: Boolean(e.GOOGLE_CLIENT_ID && e.GOOGLE_CLIENT_SECRET),
     email: Boolean(e.RESEND_API_KEY),
     redis: Boolean(e.REDIS_URL),
-    s3: e.STORAGE_DRIVER === "s3",
+    s3: storageDriver() === "s3",
     storage: storageProblem() === null,
   };
 }

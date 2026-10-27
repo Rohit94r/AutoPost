@@ -6,7 +6,10 @@ import { Readable } from "node:stream";
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { sign, verifySignature } from "@/server/crypto";
-import { env, storageProblem } from "@/server/env";
+import { and, asc, eq, sql } from "drizzle-orm";
+import { db } from "@/server/db";
+import { storedFileChunks } from "@/server/db/schema";
+import { env, storageDriver, storageProblem } from "@/server/env";
 import { AppError } from "@/server/errors";
 
 /**
@@ -28,6 +31,18 @@ export interface StorageDriver {
    * Null when the driver can't do it (local disk): the browser then posts the file to the app.
    */
   directUploadUrl(key: string, contentType: string, ttlSec: number): Promise<string | null>;
+  /** Chunked uploads through the app (database storage): store part `index` of an object. */
+  appendChunk?(key: string, index: number, data: Buffer): Promise<void>;
+}
+
+/** Signed URL on the app's own domain (served by /api/public-media) for drivers without public URLs. */
+function signedAppUrl(key: string, ttlSec: number) {
+  const exp = Math.floor(Date.now() / 1000) + ttlSec;
+  const url = new URL(`/api/public-media`, env().APP_BASE_URL);
+  url.searchParams.set("key", key);
+  url.searchParams.set("exp", String(exp));
+  url.searchParams.set("sig", sign(`${key}:${exp}`));
+  return url.toString();
 }
 
 class LocalStorage implements StorageDriver {
@@ -68,13 +83,7 @@ class LocalStorage implements StorageDriver {
   }
 
   async publicUrl(key: string, ttlSec: number) {
-    const exp = Math.floor(Date.now() / 1000) + ttlSec;
-    const sig = sign(`${key}:${exp}`);
-    const url = new URL(`/api/public-media`, env().APP_BASE_URL);
-    url.searchParams.set("key", key);
-    url.searchParams.set("exp", String(exp));
-    url.searchParams.set("sig", sig);
-    return url.toString();
+    return signedAppUrl(key, ttlSec);
   }
 }
 
@@ -133,6 +142,69 @@ class S3Storage implements StorageDriver {
   }
 }
 
+/** Files stored in Postgres as ordered chunks (≤ 4 MB each), streamed back chunk by chunk. */
+export class DatabaseStorage implements StorageDriver {
+  static readonly CHUNK = 4 * 1024 * 1024;
+
+  async put(key: string, data: Buffer, contentType: string) {
+    await db.transaction(async (tx) => {
+      await tx.delete(storedFileChunks).where(eq(storedFileChunks.key, key));
+      for (let i = 0, idx = 0; i < Math.max(data.length, 1); i += DatabaseStorage.CHUNK, idx++) {
+        await tx.insert(storedFileChunks).values({ key, idx, data: data.subarray(i, i + DatabaseStorage.CHUNK), contentType });
+      }
+    });
+  }
+
+  async get(key: string) {
+    const rows = await db.select({ data: storedFileChunks.data }).from(storedFileChunks).where(eq(storedFileChunks.key, key)).orderBy(asc(storedFileChunks.idx));
+    if (!rows.length) throw new Error("Object not found");
+    return Buffer.concat(rows.map((r) => r.data));
+  }
+
+  async delete(key: string) {
+    await db.delete(storedFileChunks).where(eq(storedFileChunks.key, key));
+  }
+
+  async size(key: string) {
+    const [r] = await db
+      .select({ n: sql<number>`count(*)::int`, bytes: sql<string | null>`sum(octet_length(${storedFileChunks.data}))::text` })
+      .from(storedFileChunks)
+      .where(eq(storedFileChunks.key, key));
+    return r && r.n > 0 ? Number(r.bytes) : null;
+  }
+
+  async stream(key: string) {
+    const parts = await db.select({ idx: storedFileChunks.idx }).from(storedFileChunks).where(eq(storedFileChunks.key, key)).orderBy(asc(storedFileChunks.idx));
+    if (!parts.length) throw new Error("Object not found");
+    const size = await this.size(key);
+    let i = 0;
+    // One chunk per pull, so memory stays at one chunk however large the file is.
+    const body = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        if (i >= parts.length) return controller.close();
+        const [row] = await db.select({ data: storedFileChunks.data }).from(storedFileChunks).where(and(eq(storedFileChunks.key, key), eq(storedFileChunks.idx, parts[i++]!.idx)));
+        controller.enqueue(new Uint8Array(row!.data));
+      },
+    });
+    return { body, size };
+  }
+
+  async publicUrl(key: string, ttlSec: number) {
+    return signedAppUrl(key, ttlSec);
+  }
+
+  async directUploadUrl() {
+    return null;
+  }
+
+  async appendChunk(key: string, index: number, data: Buffer) {
+    await db
+      .insert(storedFileChunks)
+      .values({ key, idx: index, data })
+      .onConflictDoUpdate({ target: [storedFileChunks.key, storedFileChunks.idx], set: { data } });
+  }
+}
+
 let driver: StorageDriver | undefined;
 
 export function storage(): StorageDriver {
@@ -140,8 +212,11 @@ export function storage(): StorageDriver {
   const e = env();
   const problem = storageProblem();
   if (problem) throw new AppError(503, "storage_not_configured", problem);
-  if (e.STORAGE_DRIVER === "s3") {
+  const kind = storageDriver();
+  if (kind === "s3") {
     driver = new S3Storage(e.S3_BUCKET!);
+  } else if (kind === "database") {
+    driver = new DatabaseStorage();
   } else {
     driver = new LocalStorage(path.resolve(e.STORAGE_LOCAL_DIR));
   }

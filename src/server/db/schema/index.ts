@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  customType,
   index,
   integer,
   jsonb,
@@ -16,6 +17,10 @@ import {
 import { PLATFORMS } from "../../../lib/platforms";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
+const bytea = customType<{ data: Buffer; driverData: Uint8Array }>({
+  dataType: () => "bytea",
+  fromDriver: (v) => Buffer.from(v),
+});
 const createdAt = () => ts("created_at").notNull().defaultNow();
 const updatedAt = () =>
   ts("updated_at")
@@ -857,3 +862,19 @@ export const appState = pgTable("app_state", {
   value: jsonb("value").$type<Record<string, unknown>>().notNull().default({}),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
+
+/**
+ * File storage inside Postgres (STORAGE_DRIVER=database, the default on Vercel): each object is
+ * stored as ordered chunks so large files upload and stream in pieces under serverless limits.
+ */
+export const storedFileChunks = pgTable(
+  "stored_file_chunks",
+  {
+    key: text("key").notNull(),
+    idx: integer("idx").notNull(),
+    data: bytea("data").notNull(),
+    contentType: text("content_type"),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.key, t.idx] })],
+);

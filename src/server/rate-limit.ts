@@ -14,6 +14,8 @@ export const RATE_LIMITS = {
   default: { bucket: "api", limit: 120, windowSec: 60 },
   ai: { bucket: "ai", limit: 20, windowSec: 60 },
   upload: { bucket: "upload", limit: 20, windowSec: 60 },
+  // Each part of a chunked upload is one request (a 200 MB video is ~60 parts).
+  uploadChunk: { bucket: "upload-chunk", limit: 600, windowSec: 60 },
   publish: { bucket: "publish", limit: 30, windowSec: 60 },
   oauth: { bucket: "oauth", limit: 10, windowSec: 60 },
 } satisfies Record<string, RateLimitRule>;
