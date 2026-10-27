@@ -6,8 +6,10 @@ async function main() {
   const email = process.env.SEED_ADMIN_EMAIL;
   const password = process.env.SEED_ADMIN_PASSWORD;
   if (!email || !password) throw new Error("Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD (in .env.local) first.");
-  const r = await seedLoginUser({ email, password, name: process.env.SEED_ADMIN_NAME });
-  console.log(`${r.created ? "created" : "updated"} login ${email} (workspace ${r.workspaceId})`);
+  // --if-missing (deploys): create the login once, never reset a password the user has since changed.
+  const ifMissing = process.argv.includes("--if-missing");
+  const r = await seedLoginUser({ email, password, name: process.env.SEED_ADMIN_NAME, ifMissing });
+  console.log(r.created ? `created login ${email}` : ifMissing ? `login ${email} already exists, left unchanged` : `updated login ${email}`);
 }
 
 main()

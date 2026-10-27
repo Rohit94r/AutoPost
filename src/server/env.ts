@@ -30,6 +30,12 @@ const schema = z.object({
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   REDIS_URL: optional,
+  // How background work runs: "worker" = BullMQ worker process (needs REDIS_URL);
+  // "cron" = /api/cron/tick called by a scheduler (Vercel and other serverless hosts).
+  // Default: cron on Vercel, worker when REDIS_URL is set, otherwise cron.
+  BACKGROUND_MODE: z.enum(["worker", "cron"]).optional().or(z.literal("").transform(() => undefined)),
+  // Shared secret the scheduler sends as "Authorization: Bearer <CRON_SECRET>" (Vercel Cron sends it automatically).
+  CRON_SECRET: optional,
 
   BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET must be at least 32 characters"),
   ENCRYPTION_KEY: z.string().min(1, "ENCRYPTION_KEY is required"),
@@ -72,7 +78,7 @@ const schema = z.object({
 
   FACEBOOK_APP_ID: optional,
   FACEBOOK_APP_SECRET: optional,
-  FACEBOOK_GRAPH_VERSION: z.string().regex(/^vd+.d+$/).default("v26.0"),
+  FACEBOOK_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default("v26.0"),
 
   THREADS_APP_ID: optional,
   THREADS_APP_SECRET: optional,
@@ -131,7 +137,10 @@ let cached: Env | undefined;
 
 export function env(): Env {
   if (cached) return cached;
-  const parsed = schema.safeParse(process.env);
+  // On Vercel, fall back to the production domain when APP_BASE_URL isn't set.
+  const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const source = { ...process.env, APP_BASE_URL: process.env.APP_BASE_URL || (vercelUrl ? `https://${vercelUrl}` : undefined) };
+  const parsed = schema.safeParse(source);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`).join("\n");
     throw new Error(`Invalid server environment configuration:\n${issues}`);
@@ -147,6 +156,22 @@ export function resetEnvCache() {
 
 export const isProduction = () => env().NODE_ENV === "production";
 
+/** Running on Vercel (or another host where no long-lived worker process exists). */
+export const onVercel = () => process.env.VERCEL === "1";
+
+export function backgroundMode(): "worker" | "cron" {
+  const e = env();
+  return e.BACKGROUND_MODE ?? (onVercel() ? "cron" : e.REDIS_URL ? "worker" : "cron");
+}
+
+/** Why uploads can't be stored, or null when storage is usable. */
+export function storageProblem(): string | null {
+  const e = env();
+  if (e.STORAGE_DRIVER === "s3") return e.S3_BUCKET && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY ? null : "S3 storage is selected but S3_BUCKET, S3_ACCESS_KEY_ID or S3_SECRET_ACCESS_KEY is missing.";
+  if (onVercel()) return "Vercel has no persistent disk. Set STORAGE_DRIVER=s3 with an S3-compatible bucket (Cloudflare R2, AWS S3) to store uploads.";
+  return null;
+}
+
 export function integrationStatus() {
   const e = env();
   return {
@@ -159,5 +184,6 @@ export function integrationStatus() {
     email: Boolean(e.RESEND_API_KEY),
     redis: Boolean(e.REDIS_URL),
     s3: e.STORAGE_DRIVER === "s3",
+    storage: storageProblem() === null,
   };
 }

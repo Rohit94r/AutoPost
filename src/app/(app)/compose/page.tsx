@@ -8,7 +8,8 @@ import { listBrands } from "@/server/brand/service";
 import { getContent } from "@/server/content/service";
 import { db } from "@/server/db";
 import { socialAccounts } from "@/server/db/schema";
-import { env, integrationStatus } from "@/server/env";
+import { backgroundMode, env, integrationStatus } from "@/server/env";
+import { lastTickAt } from "@/server/jobs/runner";
 
 export const metadata = { title: "Create post" };
 
@@ -71,9 +72,17 @@ export default async function ComposePage({ searchParams }: { searchParams: Prom
         aiAvailable={integrations.groq || integrations.gemini}
         startWith={documentId || start === "document" ? "document" : start === "image" ? "image" : null}
         initialDocumentId={documentId}
-        workerReady={integrations.redis}
+        schedulerWarning={await schedulerWarning(integrations.redis)}
         documents={{ maxMb: e.DOCUMENT_MAX_MB, retentionDays: ctx.workspace.documentRetentionDays, aiReady: integrations.gemini || Boolean(e.AI_MODEL_EXTRACT) }}
       />
     </>
   );
+}
+
+/** Explain, in plain words, when posts won't go out on time. */
+async function schedulerWarning(redis: boolean): Promise<string | null> {
+  if (backgroundMode() === "worker") return redis ? null : "Publishing runs in the background worker, which needs Redis (REDIS_URL) and `pnpm worker`. Until then, posts are saved and queued but not sent.";
+  const last = await lastTickAt();
+  if (last && Date.now() - last.getTime() < 15 * 60_000) return null;
+  return `"Publish now" sends right away. Scheduled posts go out when the scheduler runs, and it ${last ? "hasn't run in the last 15 minutes" : "hasn't run yet"}. Set it up under Get started.`;
 }

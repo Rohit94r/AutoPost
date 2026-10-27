@@ -16,3 +16,6 @@ export const POST = apiRoute({ rateLimit: RATE_LIMITS.upload }, async ({ req, us
   const { queued } = await requestExtraction({ workspaceId: workspace.id, userId: user.id, documentId: doc.id, correlationId });
   return NextResponse.json({ document: { id: doc.id, status: queued ? "processing" : undefined } }, { status: 201 });
 });
+
+// Publishing / extraction may continue after the response (cron mode); allow the full function time.
+export const maxDuration = 300;

@@ -93,6 +93,8 @@ export const users = pgTable("users", {
   image: text("image"),
   timezone: text("timezone").notNull().default("UTC"),
   onboardingCompletedAt: ts("onboarding_completed_at"),
+  /** "Get started" guide: steps the user skipped, and whether they hid the guide. */
+  setupState: jsonb("setup_state").$type<{ skipped?: string[]; hiddenAt?: string }>().notNull().default({}),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -848,3 +850,10 @@ export const engagementItemRelations = relations(engagementItems, ({ one }) => (
   account: one(socialAccounts, { fields: [engagementItems.socialAccountId], references: [socialAccounts.id] }),
   post: one(publishedPosts, { fields: [engagementItems.publishedPostId], references: [publishedPosts.id] }),
 }));
+
+/** Small key/value store for app-wide state, e.g. when each scheduled task last ran (cron mode). */
+export const appState = pgTable("app_state", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").$type<Record<string, unknown>>().notNull().default({}),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});

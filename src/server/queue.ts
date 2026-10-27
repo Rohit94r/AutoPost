@@ -1,5 +1,7 @@
 import "server-only";
 import { Queue } from "bullmq";
+import { backgroundMode } from "@/server/env";
+import { runAfterResponse } from "@/server/jobs/after";
 import { logger } from "@/server/logger";
 import { getRedis } from "@/server/redis";
 
@@ -45,6 +47,14 @@ function queue(name: string): Queue | null {
  * while duplicates of the same schedule are ignored.
  */
 export async function enqueuePublish(data: PublishJobData, runAt: Date) {
+  if (backgroundMode() === "cron") {
+    // Due now: publish right after this response. Later: /api/cron/tick picks it up when due.
+    if (runAt.getTime() > Date.now() + 5_000) return true;
+    return runAfterResponse("publish", async () => {
+      const { executePublishingJob } = await import("@/server/publishing/executor");
+      await executePublishingJob(data.publishingJobId, { workerId: "inline" });
+    });
+  }
   const q = queue(QUEUES.publish);
   if (!q) {
     logger.warn({ jobId: data.publishingJobId }, "REDIS_URL not set; publish job will run when a worker sweeps");
@@ -64,6 +74,12 @@ export async function enqueuePublish(data: PublishJobData, runAt: Date) {
 }
 
 export async function enqueueDocument(data: DocumentJobData) {
+  if (backgroundMode() === "cron") {
+    return runAfterResponse("document", async () => {
+      const { processDocument } = await import("@/server/documents/service");
+      await processDocument(data);
+    });
+  }
   const q = queue(QUEUES.documents);
   if (!q) return false;
   await q.add("extract", data, { jobId: `doc-${data.documentId}-${Date.now()}`, attempts: 2, backoff: { type: "exponential", delay: 10_000 } });

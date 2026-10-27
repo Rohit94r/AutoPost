@@ -13,3 +13,6 @@ export const POST = apiRoute({ rateLimit: RATE_LIMITS.publish }, async ({ req, u
     body: await createPublishingJobs({ workspaceId: workspace.id, userId: user.id, correlationId, req }, input),
   }));
 });
+
+// Publishing / extraction may continue after the response (cron mode); allow the full function time.
+export const maxDuration = 300;

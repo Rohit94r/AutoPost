@@ -8,3 +8,6 @@ export const POST = apiRoute<{ id: string }>({ rateLimit: RATE_LIMITS.ai }, asyn
   await assertQuota(workspace.id, "document");
   return requestExtraction({ workspaceId: workspace.id, userId: user.id, documentId: uuidParam(params.id), correlationId });
 });
+
+// Publishing / extraction may continue after the response (cron mode); allow the full function time.
+export const maxDuration = 300;

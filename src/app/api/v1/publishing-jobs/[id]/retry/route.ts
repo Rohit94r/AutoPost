@@ -9,3 +9,6 @@ export const POST = apiRoute<{ id: string }>({ rateLimit: RATE_LIMITS.publish },
   const input = await parseJson(req, body).catch(() => ({ confirmNotPublished: false }));
   return { job: await retryJob({ workspaceId: workspace.id, userId: user.id, correlationId }, uuidParam(params.id), input) };
 });
+
+// Publishing / extraction may continue after the response (cron mode); allow the full function time.
+export const maxDuration = 300;
